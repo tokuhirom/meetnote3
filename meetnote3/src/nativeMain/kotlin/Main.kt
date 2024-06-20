@@ -1,6 +1,7 @@
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import meetnote3.initLogger
 import meetnote3.service.CaptureMixService
@@ -28,6 +29,13 @@ fun main(args: Array<String>) {
     val recordingService = RecordingService(captureMixService)
     CoroutineScope(Dispatchers.Default).launch {
         recordingService.start(windowMonitoringService.observeState())
+    }
+
+    // transcript
+    CoroutineScope(Dispatchers.Default).launch {
+        recordingService.readyForTranscriptFlow.collect { documentDirectory ->
+            println("Transcript ready: ${documentDirectory.transcriptFile}")
+        }
     }
 
     CFRunLoopRun()

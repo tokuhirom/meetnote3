@@ -3,6 +3,7 @@ package meetnote3.service
 import kotlinx.cinterop.BetaInteropApi
 import meetnote3.getSharableContent
 import meetnote3.info
+import meetnote3.model.DocumentDirectory
 import meetnote3.recorder.MicRecorder
 import meetnote3.recorder.ScreenRecorder
 import meetnote3.recorder.mix
@@ -17,11 +18,10 @@ import platform.posix.unlink
 
 class CaptureMixService {
     @BetaInteropApi
-    suspend fun start(
-        micFileName: String,
-        screenFileName: String,
-        outFileName: String,
-    ): CaptureState {
+    suspend fun start(documentDirectory: DocumentDirectory): CaptureState {
+        val micFileName = documentDirectory.micFilePath()
+        val screenFileName = documentDirectory.screenFilePath()
+
         println("Recording audio and screen to $micFileName and $screenFileName ...")
 
         val micRecorder = startAudioRecording(AVFileTypeMPEG4, micFileName)
@@ -49,23 +49,23 @@ class CaptureMixService {
         )
 
         return CaptureState(
+            documentDirectory = documentDirectory,
             micRecorder = micRecorder,
             screenRecorder = screenRecorder,
-            outFileName = outFileName,
-            micFile = micFileName,
-            screenFile = screenFileName,
         )
     }
 }
 
 data class CaptureState(
-    val micRecorder: MicRecorder,
-    val screenRecorder: ScreenRecorder,
-    val outFileName: String,
-    val micFile: String,
-    val screenFile: String,
+    val documentDirectory: DocumentDirectory,
+    private val micRecorder: MicRecorder,
+    private val screenRecorder: ScreenRecorder,
 ) {
     suspend fun stop() {
+        val micFile = documentDirectory.micFilePath()
+        val screenFile = documentDirectory.screenFilePath()
+        val outFileName = documentDirectory.mixedFilePath()
+
         micRecorder.stop()
 
         screenRecorder.stop()

@@ -1,5 +1,8 @@
 # Meetnote3
 
+```shell
+brew install whisper-cpp ffmpeg
+```
 
 ## License
 
