@@ -1,6 +1,7 @@
 package meetnote3.recorder
 
 import kotlinx.cinterop.ExperimentalForeignApi
+import meetnote3.info
 import platform.AVFoundation.AVAssetExportPresetAppleM4A
 import platform.AVFoundation.AVAssetExportSession
 import platform.AVFoundation.AVAssetExportSessionStatus
@@ -18,9 +19,7 @@ import platform.AVFoundation.tracksWithMediaType
 import platform.CoreMedia.CMTimeMake
 import platform.CoreMedia.CMTimeRangeMake
 import platform.CoreMedia.kCMPersistentTrackID_Invalid
-import platform.Foundation.NSRunLoop
 import platform.Foundation.NSURL
-import platform.Foundation.run
 import platform.posix.warn
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -62,7 +61,7 @@ suspend fun mix(
 
     when (val status = exporter.exportAsynchronously()) {
         AVAssetExportSessionStatusCompleted -> {
-            println("Mixing completed successfully!")
+            info("Mixing completed successfully!")
         }
 
         AVAssetExportSessionStatusFailed, AVAssetExportSessionStatusCancelled -> {
@@ -73,8 +72,6 @@ suspend fun mix(
             warn("Unknown export status: $status")
         }
     }
-
-    NSRunLoop.mainRunLoop().run()
 }
 
 suspend fun AVAssetExportSession.exportAsynchronously(): AVAssetExportSessionStatus =

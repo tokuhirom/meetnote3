@@ -11,8 +11,6 @@ import kotlin.time.Duration
 
 @BetaInteropApi
 fun main(args: Array<String>) {
-    // start capturing worker
-
     initLogger()
 
     println("Window monitoring service started.")
