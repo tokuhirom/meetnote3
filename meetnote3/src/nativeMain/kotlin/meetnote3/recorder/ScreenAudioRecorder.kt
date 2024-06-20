@@ -205,23 +205,35 @@ data class ScreenRecorder(
     val assetWriter: AVAssetWriter,
 ) {
     @OptIn(ExperimentalForeignApi::class)
-    fun stop(callback: () -> Unit) {
-        stream.stopCaptureWithCompletionHandler { error ->
+    suspend fun stop() {
+        stream.stopCapture()
+
+        println("Capture stopped")
+
+        val hostTimeClock = CMClockGetHostTimeClock()
+        val now = CMClockGetTime(hostTimeClock)
+        assetWriter.endSessionAtSourceTime(now)
+
+        audioWriterInput?.markAsFinished()
+        videoWriterInput?.markAsFinished()
+        assetWriter.finishWritingAsync()
+    }
+}
+
+suspend fun SCStream.stopCapture() =
+    suspendCoroutine { cont ->
+        this.stopCaptureWithCompletionHandler { error ->
             if (error != null) {
-                println("Failed to stop capture: ${error.localizedDescription}")
+                cont.resumeWithException(Exception("Failed to stop capture: ${error.localizedDescription}"))
             } else {
-                println("Capture stopped")
-
-                val hostTimeClock = CMClockGetHostTimeClock()
-                val now = CMClockGetTime(hostTimeClock)
-                assetWriter.endSessionAtSourceTime(now)
-
-                audioWriterInput?.markAsFinished()
-                videoWriterInput?.markAsFinished()
-                assetWriter.finishWritingWithCompletionHandler {
-                    callback()
-                }
+                cont.resume(Unit)
             }
         }
     }
-}
+
+suspend fun AVAssetWriter.finishWritingAsync() =
+    suspendCoroutine { cont ->
+        this.finishWritingWithCompletionHandler {
+            cont.resume(Unit)
+        }
+    }

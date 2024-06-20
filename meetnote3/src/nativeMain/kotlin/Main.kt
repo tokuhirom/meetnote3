@@ -3,6 +3,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import meetnote3.initLogger
+import meetnote3.service.CaptureMixService
 import meetnote3.service.RecordingService
 import meetnote3.service.WindowMonitoringService
 import platform.CoreFoundation.CFRunLoopRun
@@ -25,7 +26,8 @@ fun main(args: Array<String>) {
         Duration.parse("1s"),
     )
 
-    val recordingService = RecordingService()
+    val captureMixService = CaptureMixService()
+    val recordingService = RecordingService(captureMixService)
     CoroutineScope(Dispatchers.Default).launch {
         recordingService.start(windowMonitoringService.observeState())
     }

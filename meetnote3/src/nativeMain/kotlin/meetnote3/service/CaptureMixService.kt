@@ -1,6 +1,6 @@
-package meetnote3.command
+package meetnote3.service
 
-import meetnote3.createTempFile
+import kotlinx.cinterop.BetaInteropApi
 import meetnote3.getSharableContent
 import meetnote3.info
 import meetnote3.recorder.MicRecorder
@@ -12,19 +12,19 @@ import platform.AVFoundation.AVFileTypeMPEG4
 import platform.ScreenCaptureKit.SCContentFilter
 import platform.ScreenCaptureKit.SCDisplay
 import platform.ScreenCaptureKit.SCStreamConfiguration
-import platform.posix.sleep
+import platform.posix.perror
 import platform.posix.unlink
 
-class CaptureMixCommand(
-    private val outFileName: String,
-) {
-    suspend fun run(): CaptureState {
-        val micFile = createTempFile("capjoy-mix-mic-", ".m4a")
-        val screenFile = createTempFile("capjoy-mix-screen-", ".m4a")
+class CaptureMixService {
+    @BetaInteropApi
+    suspend fun start(
+        micFileName: String,
+        screenFileName: String,
+        outFileName: String,
+    ): CaptureState {
+        println("Recording audio and screen to $micFileName and $screenFileName ...")
 
-        println("Recording audio and screen to $micFile and $screenFile ...")
-
-        val micRecorder = startAudioRecording(AVFileTypeMPEG4, micFile)
+        val micRecorder = startAudioRecording(AVFileTypeMPEG4, micFileName)
         println("Started micRecorder...")
 
         val content = getSharableContent()
@@ -41,21 +41,19 @@ class CaptureMixCommand(
         }
 
         val screenRecorder = startScreenRecord(
-            screenFile,
+            screenFileName,
             contentFilter,
             enableVideo = false,
             enableAudio = true,
             captureConfiguration,
         )
 
-        sleep(10u)
-
         return CaptureState(
             micRecorder = micRecorder,
             screenRecorder = screenRecorder,
             outFileName = outFileName,
-            micFile = micFile,
-            screenFile = screenFile,
+            micFile = micFileName,
+            screenFile = screenFileName,
         )
     }
 }
@@ -67,21 +65,26 @@ data class CaptureState(
     val micFile: String,
     val screenFile: String,
 ) {
-    fun stop() {
+    suspend fun stop() {
         micRecorder.stop()
 
-        screenRecorder.stop {
-            println("Writing finished")
+        screenRecorder.stop()
+        println("Writing finished")
 
-            println("Starting mix...")
+        println("Starting mix...")
 
-            mix(listOf(micFile, screenFile), outFileName)
+        mix(inputFileNames = listOf(micFile, screenFile), outputFileName = outFileName)
 
-            println("Created mix file: $outFileName")
+        println("Created mix file: $outFileName")
 
-            unlink(micFile)
-            unlink(screenFile)
-            info("Deleted temp files($micFile, $screenFile)")
+        if (unlink(micFile) != 0) {
+            perror("unlink $micFile")
+            info("Failed to delete $micFile")
         }
+        if (unlink(screenFile) != 0) {
+            perror("unlink $screenFile")
+            info("Failed to delete $screenFile")
+        }
+        info("Deleted temp files($micFile, $screenFile)")
     }
 }
