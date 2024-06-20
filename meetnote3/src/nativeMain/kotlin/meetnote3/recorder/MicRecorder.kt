@@ -1,6 +1,5 @@
 package meetnote3.recorder
 
-import kotlinx.cinterop.ExperimentalForeignApi
 import platform.AVFoundation.AVCaptureAudioFileOutput
 import platform.AVFoundation.AVCaptureDevice
 import platform.AVFoundation.AVCaptureDeviceInput
@@ -12,6 +11,8 @@ import platform.AVFoundation.AVMediaTypeAudio
 import platform.Foundation.NSError
 import platform.Foundation.NSURL
 import platform.darwin.NSObject
+
+import kotlinx.cinterop.ExperimentalForeignApi
 
 @OptIn(ExperimentalForeignApi::class)
 fun startAudioRecording(

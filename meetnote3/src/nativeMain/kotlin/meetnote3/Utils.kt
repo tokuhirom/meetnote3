@@ -1,14 +1,15 @@
 package meetnote3
 
-import kotlinx.cinterop.BetaInteropApi
-import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.autoreleasepool
 import platform.ScreenCaptureKit.SCShareableContent
 import platform.posix.fprintf
 import platform.posix.stderr
+
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
+import kotlinx.cinterop.BetaInteropApi
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.autoreleasepool
 
 @OptIn(ExperimentalForeignApi::class)
 fun eprintln(message: String) {

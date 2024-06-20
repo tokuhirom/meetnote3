@@ -43,3 +43,5 @@ bin/
 *.m4a
 *.mp3
 .kotlin/
+
+*.wav

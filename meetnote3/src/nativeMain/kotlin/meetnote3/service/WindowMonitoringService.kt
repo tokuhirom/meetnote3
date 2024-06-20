@@ -1,5 +1,10 @@
 package meetnote3.service
 
+import meetnote3.debug
+import meetnote3.getSharableContent
+import platform.ScreenCaptureKit.SCWindow
+
+import kotlin.time.Duration
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -7,10 +12,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import meetnote3.debug
-import meetnote3.getSharableContent
-import platform.ScreenCaptureKit.SCWindow
-import kotlin.time.Duration
 
 sealed class RecordingState {
     data object Idle : RecordingState()

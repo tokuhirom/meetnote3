@@ -1,6 +1,5 @@
 package meetnote3.recorder
 
-import kotlinx.cinterop.ExperimentalForeignApi
 import meetnote3.eprintln
 import meetnote3.utils.fileExists
 import platform.AVFAudio.AVEncoderBitRateKey
@@ -34,9 +33,11 @@ import platform.ScreenCaptureKit.SCStreamOutputProtocol
 import platform.ScreenCaptureKit.SCStreamOutputType
 import platform.darwin.NSObject
 import platform.posix.exit
+
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
+import kotlinx.cinterop.ExperimentalForeignApi
 
 @OptIn(ExperimentalForeignApi::class)
 fun createAssetWriter(

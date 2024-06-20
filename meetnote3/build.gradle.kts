@@ -17,7 +17,7 @@ kotlin {
             dependencies {
                 implementation(platform("io.ktor:ktor-bom:2.3.3"))
                 implementation("io.ktor:ktor-client-core")
-                implementation("io.ktor:ktor-client-cio")
+                implementation("io.ktor:ktor-client-darwin")
 
                 implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.4.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")

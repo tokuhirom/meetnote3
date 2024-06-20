@@ -4,4 +4,3 @@ plugins {
 rootProject.name = "meetnote3"
 
 include(":meetnote3")
-

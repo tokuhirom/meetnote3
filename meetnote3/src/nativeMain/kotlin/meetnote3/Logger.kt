@@ -1,8 +1,9 @@
 package meetnote3
 
+import platform.posix.getenv
+
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.toKString
-import platform.posix.getenv
 
 const val LOG_LEVEL_TRACE = 0
 const val LOG_LEVEL_DEBUG = 1

@@ -1,16 +1,5 @@
 package meetnote3.utils
 
-import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.IntVar
-import kotlinx.cinterop.IntVarOf
-import kotlinx.cinterop.alloc
-import kotlinx.cinterop.allocArray
-import kotlinx.cinterop.get
-import kotlinx.cinterop.memScoped
-import kotlinx.cinterop.ptr
-import kotlinx.cinterop.refTo
-import kotlinx.cinterop.value
 import platform.posix.SIGKILL
 import platform.posix.STDERR_FILENO
 import platform.posix.STDOUT_FILENO
@@ -24,10 +13,22 @@ import platform.posix.kill
 import platform.posix.perror
 import platform.posix.pipe
 import platform.posix.read
-import platform.posix.usleep
 import platform.posix.waitpid
+
 import kotlin.time.Duration
 import kotlin.time.TimeSource
+import kotlinx.cinterop.CPointer
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.IntVar
+import kotlinx.cinterop.IntVarOf
+import kotlinx.cinterop.alloc
+import kotlinx.cinterop.allocArray
+import kotlinx.cinterop.get
+import kotlinx.cinterop.memScoped
+import kotlinx.cinterop.ptr
+import kotlinx.cinterop.refTo
+import kotlinx.cinterop.value
+import kotlinx.coroutines.delay
 
 class ProcessBuilder(
     private val command: String,
@@ -125,7 +126,10 @@ class Process(
     }
 
     @OptIn(ExperimentalForeignApi::class)
-    fun waitUntil(duration: Duration): Int {
+    suspend fun waitUntil(
+        duration: Duration,
+        sleepInterval: Duration = Duration.parse("1s"),
+    ): Int {
         memScoped {
             val startTime = TimeSource.Monotonic.markNow()
             val status = alloc<IntVar>()
@@ -135,7 +139,7 @@ class Process(
                     perror("waitpid")
                     throw WaitTimeoutException("Failed to wait for the process")
                 } else if (waitPidResult == 0) {
-                    usleep(100u * 1000u)
+                    delay(sleepInterval)
                     if (startTime.elapsedNow() > duration) {
                         println("Timeout! Sending SIGKILL to the process")
                         kill(pid, SIGKILL)

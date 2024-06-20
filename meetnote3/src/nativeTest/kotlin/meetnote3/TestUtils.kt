@@ -1,7 +1,8 @@
 package meetnote3
 
-import kotlinx.cinterop.ExperimentalForeignApi
 import platform.posix.getenv
+
+import kotlinx.cinterop.ExperimentalForeignApi
 
 @OptIn(ExperimentalForeignApi::class)
 fun runOnLocalOnly(function: () -> Unit) {

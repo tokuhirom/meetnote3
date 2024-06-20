@@ -3,3 +3,5 @@
 ktlint_standard_string-template-indent = disabled
 # https://pinterest.github.io/ktlint/1.2.1/rules/standard/#multiline-expression-wrapping
 ktlint_standard_multiline-expression-wrapping = disabled
+ij_kotlin_imports_layout = *, |, java.**, javax.**, kotlin.**, kotlinx.**, com.**, org.**
+ij_kotlin_imports_threshold_for_star_imports = 999

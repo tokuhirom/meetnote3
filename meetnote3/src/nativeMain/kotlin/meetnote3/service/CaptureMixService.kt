@@ -1,6 +1,5 @@
 package meetnote3.service
 
-import kotlinx.cinterop.BetaInteropApi
 import meetnote3.getSharableContent
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
@@ -15,6 +14,8 @@ import platform.ScreenCaptureKit.SCDisplay
 import platform.ScreenCaptureKit.SCStreamConfiguration
 import platform.posix.perror
 import platform.posix.unlink
+
+import kotlinx.cinterop.BetaInteropApi
 
 class CaptureMixService {
     @BetaInteropApi

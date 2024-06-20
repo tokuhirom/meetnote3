@@ -1,19 +1,19 @@
 package meetnote3.service
 
+import meetnote3.info
+import meetnote3.model.DocumentDirectory
+
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import meetnote3.info
-import meetnote3.model.DocumentDirectory
 
 class RecordingService(
     private val captureMixService: CaptureMixService,
 ) {
-    @Suppress("ktlint:standard:backing-property-naming")
-    private val _recordingCompletionFlow = MutableSharedFlow<DocumentDirectory>()
-    val readyForTranscriptFlow: SharedFlow<DocumentDirectory> = _recordingCompletionFlow.asSharedFlow()
+    private val mutableRecordingCompletionFlow = MutableSharedFlow<DocumentDirectory>()
+    val readyForTranscriptFlow: SharedFlow<DocumentDirectory> = mutableRecordingCompletionFlow.asSharedFlow()
 
     @OptIn(BetaInteropApi::class)
     suspend fun start(observeState: StateFlow<RecordingState>) {
@@ -27,7 +27,7 @@ class RecordingService(
                     // stop recording if it's started...
                     if (recorder != null) {
                         recorder?.stop()
-                        _recordingCompletionFlow.emit(recorder!!.documentDirectory)
+                        mutableRecordingCompletionFlow.emit(recorder!!.documentDirectory)
                         recorder = null
                     }
                 }
