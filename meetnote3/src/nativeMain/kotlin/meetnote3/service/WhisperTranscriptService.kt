@@ -77,7 +77,7 @@ class WhisperTranscriptService(
         if (exitCode != 0) {
             throw Exception("whisper-cpp failed with exit code $exitCode. Stderr: ${process.stderr?.slurpString()}")
         } else {
-            info("Finished whisper-cpp successfully. VTT file: $outputLrcFilePath")
+            info("Finished whisper-cpp successfully. VTT file: file://$outputLrcFilePath")
         }
     }
 
