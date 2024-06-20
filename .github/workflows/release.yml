@@ -1,0 +1,86 @@
+name: Build and Release Kotlin/Native Binary
+
+on:
+  release:
+    types: [ created ]
+
+permissions:
+  contents: write
+
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+          - { runner: macos-latest, target: native, binary-name: capjoy_macos_arm64 }
+    runs-on: ${{ matrix.job.runner }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Replace version in VersionCommand.kt
+        run: |
+          perl -pi -e 's/__VERSION__/${{ github.event.release.tag_name }}/g' capjoy/src/nativeMain/kotlin/capjoy/command/VersionCommand.kt
+
+      - name: Build Kotlin/Native binary
+        run: ./gradlew :capjoy:${{ matrix.job.target }}Binaries
+
+      - name: Rename binary
+        run: |
+          mkdir build/
+          mv capjoy/build/bin/${{ matrix.job.target }}/releaseExecutable/capjoy.kexe build/${{ matrix.job.binary-name }}
+
+      - name: Archive binary
+        run: |
+          cd build/
+          tar -czvf ${{ matrix.job.binary-name }}.tar.gz ${{ matrix.job.binary-name }}
+
+      - name: Upload as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.job.binary-name }}
+          path: build/${{ matrix.job.binary-name }}.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+      - name: Mkdir assets dir
+        run: |
+          mkdir -p assets
+      - name: Extract binary
+        run: |
+          for file in artifacts/**/*.tar.gz; do
+              tar -xzvf $file -C assets/
+              mv $file assets/
+          done
+      - name: ls assets dir
+        run: |
+          ls -la assets/
+      - name: sha256sum
+        run: |
+          cd assets
+          sha256sum capjoy_* > checksums.txt
+          cat checksums.txt
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: assets/*
+          generate_release_notes: true
+          make_latest: true
