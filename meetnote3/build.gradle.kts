@@ -15,7 +15,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(platform("io.ktor:ktor-bom:2.3.3"))
+                implementation(platform("io.ktor:ktor-bom:2.3.11"))
                 implementation("io.ktor:ktor-client-core")
                 implementation("io.ktor:ktor-client-darwin")
 
