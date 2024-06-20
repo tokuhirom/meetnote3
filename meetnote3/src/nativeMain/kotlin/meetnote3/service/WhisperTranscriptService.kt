@@ -24,6 +24,7 @@ import kotlinx.coroutines.withContext
 
 class WhisperTranscriptService(
     private val modelName: String = "small",
+    private val language: String = "japanese",
 ) {
     private val client = HttpClient(Darwin) {
     }
@@ -71,7 +72,7 @@ class WhisperTranscriptService(
                     ".lrc",
                     "",
                 )
-            } --language japanese $waveFilePath"
+            } --language $language $waveFilePath"
         val process = ProcessBuilder(command).start(captureStdout = false, captureStderr = false)
         val exitCode = process.waitUntil(kotlin.time.Duration.parse("60s"))
         if (exitCode != 0) {

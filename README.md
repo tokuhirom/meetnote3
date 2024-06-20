@@ -1,7 +1,14 @@
 # Meetnote3
 
+## Supported Environment
+
+- macOS 14.4.1+ Arm64
+
+## Install dependencies
+
 ```shell
 brew install whisper-cpp ffmpeg
+pip3 install transformers torch
 ```
 
 ## License
