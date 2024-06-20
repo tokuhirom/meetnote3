@@ -1,28 +1,27 @@
 import sys
-from transformers import BartForConditionalGeneration, BartTokenizer
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 
 def download_model_and_tokenizer(model_name):
     # Download or load the model and tokenizer
-    model = BartForConditionalGeneration.from_pretrained(model_name)
-    tokenizer = BartTokenizer.from_pretrained(model_name)
+    model = GPT2LMHeadModel.from_pretrained(model_name)
+    tokenizer = GPT2Tokenizer.from_pretrained(model_name)
     return model, tokenizer
 
 
-def summarize_text(model, tokenizer, text):
+def summarize_text(model, tokenizer, text, max_new_tokens=150):
     # Tokenize the input text
-    inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
+    inputs = tokenizer.encode(text, return_tensors="pt", max_length=512, truncation=True)
     # Generate the summary
-    summary_ids = model.generate(inputs, max_length=150, min_length=30, length_penalty=2.0, num_beams=4,
+    summary_ids = model.generate(inputs, max_new_tokens=max_new_tokens, min_length=30, length_penalty=2.0,
+                                 num_beams=4,
                                  early_stopping=True)
     # Decode the summary
     summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
     return summary
 
 
-def main(input_file, output_file):
-    model_name = "facebook/bart-large-cnn"
-
+def main(model_name, input_file, output_file):
     # Download or load the model and tokenizer
     model, tokenizer = download_model_and_tokenizer(model_name)
 
@@ -30,7 +29,7 @@ def main(input_file, output_file):
     with open(input_file, "r", encoding="utf-8") as file:
         text = file.read()
 
-    # Generate the summary
+    # Summarize the text
     summary = summarize_text(model, tokenizer, text)
 
     # Write the summary to the output file
@@ -43,7 +42,8 @@ if __name__ == "__main__":
         print("Usage: python summarize.py <input_file> <output_file>")
         sys.exit(1)
 
+    model_name = "gpt2"
     input_file = sys.argv[1]
     output_file = sys.argv[2]
 
-    main(input_file, output_file)
+    main(model_name, input_file, output_file)
