@@ -21,7 +21,7 @@ kotlin {
 
                 implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.4.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
-                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
             }
         }
     }
