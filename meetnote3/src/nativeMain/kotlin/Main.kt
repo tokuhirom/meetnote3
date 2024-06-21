@@ -1,6 +1,7 @@
 import meetnote3.initLogger
 import meetnote3.service.CaptureMixService
 import meetnote3.service.RecordingService
+import meetnote3.service.SummarizeService
 import meetnote3.service.WhisperTranscriptService
 import meetnote3.service.WindowMonitoringService
 import platform.CoreFoundation.CFRunLoopRun
@@ -11,10 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@BetaInteropApi
-fun main(args: Array<String>) {
-    initLogger()
-
+fun startWholeWorkers() {
     println("Window monitoring service started.")
     val windowMonitoringService = WindowMonitoringService()
     windowMonitoringService.startMonitoring(
@@ -40,6 +38,23 @@ fun main(args: Array<String>) {
             whisperTranscriptService.transcribe(documentDirectory)
         }
     }
+
+    // Summarizing phase
+    val summarizeService = SummarizeService()
+    CoroutineScope(Dispatchers.Default).launch {
+        whisperTranscriptService.readyForSummarizeFlow.collect { documentDirectory ->
+            println("Summarize ready: ${documentDirectory.lrcFilePath()}")
+            summarizeService.summarize(documentDirectory)
+        }
+    }
+}
+
+@BetaInteropApi
+fun main(args: Array<String>) {
+    initLogger()
+
+    startWholeWorkers()
+//    startRecoveryProcess()
 
     CFRunLoopRun()
 }

@@ -20,12 +20,18 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.refTo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 
 class WhisperTranscriptService(
     private val modelName: String = "small",
     private val language: String = "japanese",
 ) {
+    private val mutableTranscriptionCompletionFlow = MutableSharedFlow<DocumentDirectory>()
+    val readyForSummarizeFlow: SharedFlow<DocumentDirectory> = mutableTranscriptionCompletionFlow.asSharedFlow()
+
     private val client = HttpClient(Darwin) {
     }
 
@@ -42,6 +48,8 @@ class WhisperTranscriptService(
 
             // Run whisper-cpp
             runWhisperCpp(modelFileName, waveFilePath, documentDirectory)
+
+            mutableTranscriptionCompletionFlow.emit(documentDirectory)
         } finally {
             // Clean up temporary wave file
             remove(waveFilePath)
