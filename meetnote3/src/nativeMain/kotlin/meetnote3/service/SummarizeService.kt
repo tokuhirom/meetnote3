@@ -4,7 +4,7 @@ import meetnote3.model.DocumentDirectory
 import meetnote3.python.SUMMARIZE_GPT2
 import meetnote3.utils.ProcessBuilder
 import meetnote3.utils.spurt
-import platform.posix.unlink
+import okio.FileSystem
 
 import kotlin.time.Duration
 
@@ -17,15 +17,20 @@ class SummarizeService {
         // write python code to summarize the transcript
 
         val summarizerFilePath = documentDirectory.summarizerFilePath()
-        spurt(summarizerFilePath, SUMMARIZE_GPT2)
+        spurt(summarizerFilePath.toString(), SUMMARIZE_GPT2)
         try {
             val processBuilder =
-                ProcessBuilder("python3", summarizerFilePath, documentDirectory.lrcFilePath(), summaryFilePath)
+                ProcessBuilder(
+                    "python3",
+                    summarizerFilePath.toString(),
+                    documentDirectory.lrcFilePath().toString(),
+                    summaryFilePath.toString(),
+                )
             val process = processBuilder.start(captureStdout = false, captureStderr = false)
             process.waitUntil(Duration.parse("30s"))
             println("Summary ready: file://$summaryFilePath")
         } finally {
-            unlink(summaryFilePath)
+            FileSystem.SYSTEM.delete(summarizerFilePath)
         }
     }
 }

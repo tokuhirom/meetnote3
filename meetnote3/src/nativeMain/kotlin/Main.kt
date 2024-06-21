@@ -17,10 +17,6 @@ import kotlinx.coroutines.runBlocking
 @BetaInteropApi
 fun startWholeWorkers() {
     runBlocking {
-        ProcessBuilder("ffmpeg", "-version")
-            .start(captureStdout = false, captureStderr = false)
-            .waitUntil(Duration.parse("10s"))
-
         ProcessBuilder("python3", "--version")
             .start(captureStdout = false, captureStderr = false)
             .waitUntil(Duration.parse("10s"))

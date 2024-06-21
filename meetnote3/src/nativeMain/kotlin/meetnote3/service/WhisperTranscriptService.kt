@@ -11,10 +11,11 @@ import meetnote3.utils.ProcessBuilder
 import meetnote3.utils.fileExists
 import meetnote3.utils.getHomeDirectory
 import meetnote3.utils.mkdirP
+import okio.FileSystem
+import okio.Path
 import platform.posix.fclose
 import platform.posix.fopen
 import platform.posix.fwrite
-import platform.posix.remove
 
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.refTo
@@ -51,34 +52,41 @@ class WhisperTranscriptService(
 
             mutableTranscriptionCompletionFlow.emit(documentDirectory)
         } finally {
-            // Clean up temporary wave file
-            remove(waveFilePath)
+            info("Clean up temporary wave file: file://$waveFilePath")
+            FileSystem.SYSTEM.delete(waveFilePath)
         }
     }
 
     private suspend fun convertToWave(
-        inputFilePath: String,
-        outputFilePath: String,
+        inputFilePath: Path,
+        outputFilePath: Path,
     ) {
         val process =
             ProcessBuilder(
                 "ffmpeg",
                 "-i",
-                inputFilePath,
-                outputFilePath,
+                inputFilePath.toString(),
+                "-ar",
+                "16000", // sample rate should be 16khz
+                outputFilePath.toString(),
             ).start(captureStdout = true, captureStderr = true)
         val exitCode = process.waitUntil(kotlin.time.Duration.parse("60s"))
         if (exitCode != 0) {
             throw Exception("ffmpeg failed with exit code $exitCode. Stderr: ${process.stderr?.slurpString()}")
         }
+        if (fileExists(outputFilePath.toString())) {
+            info("Converted to wave file: file://$outputFilePath")
+        } else {
+            throw Exception("Failed to convert to wave file: file://$outputFilePath")
+        }
     }
 
     private suspend fun runWhisperCpp(
         modelFilePath: String,
-        waveFilePath: String,
+        waveFilePath: Path,
         documentDirectory: DocumentDirectory,
     ) {
-        val outputLrcFilePath = documentDirectory.lrcFilePath()
+        val outputLrcFilePath = documentDirectory.lrcFilePath().toString()
         val process = ProcessBuilder(
             "whisper-cpp",
             "--model",
@@ -88,13 +96,17 @@ class WhisperTranscriptService(
             outputLrcFilePath.replace(".lrc", ""),
             "--language",
             language,
-            waveFilePath,
+            waveFilePath.toString(),
         ).start(captureStdout = false, captureStderr = false)
         val exitCode = process.waitUntil(kotlin.time.Duration.parse("60s"))
         if (exitCode != 0) {
             throw Exception("whisper-cpp failed with exit code $exitCode. Stderr: ${process.stderr?.slurpString()}")
+        }
+
+        if (fileExists(outputLrcFilePath)) {
+            info("Transcribed to lrc file: file://$outputLrcFilePath")
         } else {
-            info("Finished whisper-cpp successfully. VTT file: file://$outputLrcFilePath")
+            throw Exception("Failed to transcribe to lrc file: file://$outputLrcFilePath")
         }
     }
 

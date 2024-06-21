@@ -125,7 +125,7 @@ class Process(
                 perror("waitpid")
                 throw WaitTimeoutException("Failed to wait for the process")
             }
-            return wifexited(status.value)
+            return processExitStatus(status.value)
         }
     }
 
@@ -141,7 +141,7 @@ class Process(
                 val waitPidResult = waitpid(pid, status.ptr, WNOHANG)
                 if (waitPidResult == -1) {
                     perror("waitpid")
-                    throw WaitTimeoutException("Failed to wait for the process")
+                    error("Failed to wait for the process")
                 } else if (waitPidResult == 0) {
                     delay(sleepInterval)
                     if (startTime.elapsedNow() > duration) {
@@ -150,14 +150,31 @@ class Process(
                     }
                     continue
                 } else {
-                    return wifexited(status.value)
+                    return processExitStatus(status.value)
                 }
             }
         }
         error("Unreachable")
     }
 
-    private fun wifexited(value: Int): Int = (value and 0xff00) shr 8
+    private fun processExitStatus(status: Int): Int =
+        when {
+            wifexited(status) -> wexitstatus(status)
+            wifsignaled(status) -> {
+                val signal = wtermsig(status)
+                error("Process was terminated by signal $signal")
+            }
+
+            else -> error("Process did not exit normally: status = $status")
+        }
+
+    private fun wifexited(value: Int): Boolean = (value and 0xff) == 0
+
+    private fun wexitstatus(value: Int): Int = (value shr 8) and 0xff
+
+    private fun wifsignaled(value: Int): Boolean = (value and 0xff) != 0 && (value and 0x7f) != 0x7f
+
+    private fun wtermsig(value: Int): Int = value and 0x7f
 }
 
 class FileDescriptor(
