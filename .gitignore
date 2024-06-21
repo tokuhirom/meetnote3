@@ -45,3 +45,4 @@ bin/
 .kotlin/
 
 *.wav
+*.log
