@@ -20,7 +20,7 @@ class SummarizeService {
         spurt(summarizerFilePath, SUMMARIZE_GPT2)
         try {
             val processBuilder =
-                ProcessBuilder("python3 $summarizerFilePath ${documentDirectory.lrcFilePath()} $summaryFilePath")
+                ProcessBuilder("python3", summarizerFilePath, documentDirectory.lrcFilePath(), summaryFilePath)
             val process = processBuilder.start(captureStdout = false, captureStderr = false)
             process.waitUntil(Duration.parse("30s"))
             println("Summary ready: file://$summaryFilePath")

@@ -6,7 +6,7 @@ import platform.posix.STDOUT_FILENO
 import platform.posix.WNOHANG
 import platform.posix.close
 import platform.posix.dup2
-import platform.posix.execlp
+import platform.posix.execvp
 import platform.posix.exit
 import platform.posix.fork
 import platform.posix.kill
@@ -23,22 +23,24 @@ import kotlinx.cinterop.IntVar
 import kotlinx.cinterop.IntVarOf
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.allocArray
+import kotlinx.cinterop.cstr
 import kotlinx.cinterop.get
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.refTo
+import kotlinx.cinterop.toCValues
 import kotlinx.cinterop.value
 import kotlinx.coroutines.delay
 
 class ProcessBuilder(
-    private val command: String,
+    private vararg val command: String,
 ) {
     @OptIn(ExperimentalForeignApi::class)
     fun start(
         captureStdout: Boolean,
         captureStderr: Boolean,
     ): Process {
-        println("Running '$command'")
+        println("Running '${command.joinToString(" ")}'")
         memScoped {
             val stdoutPipe: CPointer<IntVarOf<Int>>? = if (captureStdout) {
                 val pipe = allocArray<IntVar>(2)
@@ -77,8 +79,10 @@ class ProcessBuilder(
                     dup2(stderrPipe[1], STDERR_FILENO)
                     close(stderrPipe[1])
                 }
-                execlp("/bin/sh", "sh", "-c", command, null)
-                perror("execlp")
+
+                val args = (command.toList() + listOf(null)).map { it?.cstr?.ptr }.toCValues()
+                execvp(command[0], args)
+                perror("execvp")
                 exit(1)
             } else {
                 // parent process

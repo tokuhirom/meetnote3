@@ -60,8 +60,13 @@ class WhisperTranscriptService(
         inputFilePath: String,
         outputFilePath: String,
     ) {
-        val command = "ffmpeg -i $inputFilePath -ar 16000 -ac 1 -c:a pcm_s16le $outputFilePath"
-        val process = ProcessBuilder(command).start(captureStdout = true, captureStderr = true)
+        val process =
+            ProcessBuilder(
+                "ffmpeg",
+                "-i",
+                inputFilePath,
+                outputFilePath,
+            ).start(captureStdout = true, captureStderr = true)
         val exitCode = process.waitUntil(kotlin.time.Duration.parse("60s"))
         if (exitCode != 0) {
             throw Exception("ffmpeg failed with exit code $exitCode. Stderr: ${process.stderr?.slurpString()}")
@@ -74,14 +79,17 @@ class WhisperTranscriptService(
         documentDirectory: DocumentDirectory,
     ) {
         val outputLrcFilePath = documentDirectory.lrcFilePath()
-        val command =
-            "whisper-cpp --model $modelFilePath --output-lrc --output-file ${
-                outputLrcFilePath.replace(
-                    ".lrc",
-                    "",
-                )
-            } --language $language $waveFilePath"
-        val process = ProcessBuilder(command).start(captureStdout = false, captureStderr = false)
+        val process = ProcessBuilder(
+            "whisper-cpp",
+            "--model",
+            modelFilePath,
+            "--output-lrc",
+            "--output-file",
+            outputLrcFilePath.replace(".lrc", ""),
+            "--language",
+            language,
+            waveFilePath,
+        ).start(captureStdout = false, captureStderr = false)
         val exitCode = process.waitUntil(kotlin.time.Duration.parse("60s"))
         if (exitCode != 0) {
             throw Exception("whisper-cpp failed with exit code $exitCode. Stderr: ${process.stderr?.slurpString()}")

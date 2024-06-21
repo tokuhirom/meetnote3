@@ -4,6 +4,7 @@ import meetnote3.service.RecordingService
 import meetnote3.service.SummarizeService
 import meetnote3.service.WhisperTranscriptService
 import meetnote3.service.WindowMonitoringService
+import meetnote3.utils.ProcessBuilder
 import platform.CoreFoundation.CFRunLoopRun
 
 import kotlin.time.Duration
@@ -11,14 +12,30 @@ import kotlinx.cinterop.BetaInteropApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 @BetaInteropApi
 fun startWholeWorkers() {
+    runBlocking {
+        ProcessBuilder("ffmpeg", "-version")
+            .start(captureStdout = false, captureStderr = false)
+            .waitUntil(Duration.parse("10s"))
+
+        ProcessBuilder("python3", "--version")
+            .start(captureStdout = false, captureStderr = false)
+            .waitUntil(Duration.parse("10s"))
+
+        ProcessBuilder("which", "python3")
+            .start(captureStdout = false, captureStderr = false)
+            .waitUntil(Duration.parse("10s"))
+    }
+
     println("Window monitoring service started.")
     val windowMonitoringService = WindowMonitoringService()
     windowMonitoringService.startMonitoring(
         setOf(
             "Zoom Meeting",
+            "Zoom Webinar",
             "zoom share toolbar window",
             "zoom share statusbar window",
         ),
