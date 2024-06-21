@@ -7,24 +7,28 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsChannel
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
-import meetnote3.model.getHomeDirectory
-import meetnote3.model.mkdirP
 import meetnote3.utils.ProcessBuilder
-import meetnote3.utils.fileExists
-import platform.posix.fclose
-import platform.posix.fopen
-import platform.posix.fwrite
-import platform.posix.remove
+import meetnote3.utils.getHomeDirectory
+import okio.FileSystem
+import okio.Path
 
-import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.refTo
+import kotlin.time.Duration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 
 class WhisperTranscriptService(
     private val modelName: String = "small",
+    private val language: String = "japanese",
+    private val whisperCppTimeout: Duration = Duration.parse("1h"),
+    private val ffmpegTimeout: Duration = Duration.parse("1h"),
 ) {
+    private val mutableTranscriptionCompletionFlow = MutableSharedFlow<DocumentDirectory>()
+    val readyForSummarizeFlow: SharedFlow<DocumentDirectory> = mutableTranscriptionCompletionFlow.asSharedFlow()
+
     private val client = HttpClient(Darwin) {
     }
 
@@ -41,58 +45,79 @@ class WhisperTranscriptService(
 
             // Run whisper-cpp
             runWhisperCpp(modelFileName, waveFilePath, documentDirectory)
+
+            mutableTranscriptionCompletionFlow.emit(documentDirectory)
         } finally {
-            // Clean up temporary wave file
-            remove(waveFilePath)
+            info("Clean up temporary wave file: file://$waveFilePath")
+            FileSystem.SYSTEM.delete(waveFilePath)
         }
     }
 
     private suspend fun convertToWave(
-        inputFilePath: String,
-        outputFilePath: String,
+        inputFilePath: Path,
+        outputFilePath: Path,
     ) {
-        val command = "ffmpeg -i $inputFilePath -ar 16000 -ac 1 -c:a pcm_s16le $outputFilePath"
-        val process = ProcessBuilder(command).start(captureStdout = true, captureStderr = true)
-        val exitCode = process.waitUntil(kotlin.time.Duration.parse("60s"))
+        val process =
+            ProcessBuilder(
+                "ffmpeg",
+                "-i",
+                inputFilePath.toString(),
+                "-ar",
+                // sample rate should be 16khz
+                "16000",
+                outputFilePath.toString(),
+            ).start(captureStdout = true, captureStderr = true)
+        val exitCode = process.waitUntil(ffmpegTimeout)
         if (exitCode != 0) {
             throw Exception("ffmpeg failed with exit code $exitCode. Stderr: ${process.stderr?.slurpString()}")
+        }
+        if (FileSystem.SYSTEM.exists(outputFilePath)) {
+            info("Converted to wave file: file://$outputFilePath")
+        } else {
+            throw Exception("Failed to convert to wave file: file://$outputFilePath")
         }
     }
 
     private suspend fun runWhisperCpp(
-        modelFilePath: String,
-        waveFilePath: String,
+        modelFilePath: Path,
+        waveFilePath: Path,
         documentDirectory: DocumentDirectory,
     ) {
         val outputLrcFilePath = documentDirectory.lrcFilePath()
-        val command =
-            "whisper-cpp --model $modelFilePath --output-lrc --output-file ${
-                outputLrcFilePath.replace(
-                    ".lrc",
-                    "",
-                )
-            } --language japanese $waveFilePath"
-        val process = ProcessBuilder(command).start(captureStdout = false, captureStderr = false)
-        val exitCode = process.waitUntil(kotlin.time.Duration.parse("60s"))
+        val process = ProcessBuilder(
+            "whisper-cpp",
+            "--model",
+            modelFilePath.toString(),
+            "--output-lrc",
+            "--output-file",
+            outputLrcFilePath.toString().replace(".lrc", ""),
+            "--language",
+            language,
+            waveFilePath.toString(),
+        ).start(captureStdout = false, captureStderr = false)
+        val exitCode = process.waitUntil(whisperCppTimeout)
         if (exitCode != 0) {
             throw Exception("whisper-cpp failed with exit code $exitCode. Stderr: ${process.stderr?.slurpString()}")
+        }
+
+        if (FileSystem.SYSTEM.exists(outputLrcFilePath)) {
+            info("Transcribed to lrc file: file://$outputLrcFilePath")
         } else {
-            info("Finished whisper-cpp successfully. VTT file: file://$outputLrcFilePath")
+            throw Exception("Failed to transcribe to lrc file: file://$outputLrcFilePath")
         }
     }
 
-    @OptIn(ExperimentalForeignApi::class)
-    private suspend fun downloadModel(modelName: String): String {
+    private suspend fun downloadModel(modelName: String): Path {
         val baseUrl = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main"
         val modelUrl = "$baseUrl/ggml-$modelName.bin"
 
         val homedir = getHomeDirectory()
-        val modelDirectory = "$homedir/Documents/models"
-        mkdirP(modelDirectory)
+        val modelDirectory = homedir.resolve("Documents/models")
+        FileSystem.SYSTEM.createDirectories(modelDirectory)
 
-        val modelPath = "$modelDirectory/ggml-$modelName.bin"
+        val modelPath = modelDirectory.resolve("ggml-$modelName.bin")
 
-        if (fileExists(modelPath)) {
+        if (FileSystem.SYSTEM.exists(modelPath)) {
             return modelPath
         }
 
@@ -101,18 +126,14 @@ class WhisperTranscriptService(
         val responseBody = response.bodyAsChannel()
 
         withContext(Dispatchers.IO) {
-            val file =
-                fopen(modelPath, "wb") ?: throw RuntimeException("Cannot open file for writing: $modelPath")
-            try {
+            FileSystem.SYSTEM.write(modelPath) {
+                val buffer = ByteArray(4096)
                 while (!responseBody.isClosedForRead) {
-                    val buffer = ByteArray(4096)
                     val bytesRead = responseBody.readAvailable(buffer, 0, buffer.size)
                     if (bytesRead > 0) {
-                        fwrite(buffer.refTo(0), 1u, bytesRead.toULong(), file)
+                        this.write(buffer, 0, bytesRead)
                     }
                 }
-            } finally {
-                fclose(file)
             }
         }
 

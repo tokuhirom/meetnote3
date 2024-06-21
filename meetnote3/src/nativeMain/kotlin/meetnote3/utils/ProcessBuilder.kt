@@ -1,12 +1,13 @@
 package meetnote3.utils
 
+import meetnote3.info
 import platform.posix.SIGKILL
 import platform.posix.STDERR_FILENO
 import platform.posix.STDOUT_FILENO
 import platform.posix.WNOHANG
 import platform.posix.close
 import platform.posix.dup2
-import platform.posix.execlp
+import platform.posix.execvp
 import platform.posix.exit
 import platform.posix.fork
 import platform.posix.kill
@@ -23,22 +24,24 @@ import kotlinx.cinterop.IntVar
 import kotlinx.cinterop.IntVarOf
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.allocArray
+import kotlinx.cinterop.cstr
 import kotlinx.cinterop.get
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.refTo
+import kotlinx.cinterop.toCValues
 import kotlinx.cinterop.value
 import kotlinx.coroutines.delay
 
 class ProcessBuilder(
-    private val command: String,
+    private vararg val command: String,
 ) {
     @OptIn(ExperimentalForeignApi::class)
     fun start(
         captureStdout: Boolean,
         captureStderr: Boolean,
     ): Process {
-        println("Running '$command'")
+        println("Running '${command.joinToString(" ")}'")
         memScoped {
             val stdoutPipe: CPointer<IntVarOf<Int>>? = if (captureStdout) {
                 val pipe = allocArray<IntVar>(2)
@@ -77,8 +80,10 @@ class ProcessBuilder(
                     dup2(stderrPipe[1], STDERR_FILENO)
                     close(stderrPipe[1])
                 }
-                execlp("/bin/sh", "sh", "-c", command, null)
-                perror("execlp")
+
+                val args = (command.toList() + listOf(null)).map { it?.cstr?.ptr }.toCValues()
+                execvp(command[0], args)
+                perror("execvp")
                 exit(1)
             } else {
                 // parent process
@@ -90,6 +95,7 @@ class ProcessBuilder(
                 }
 
                 return Process(
+                    command,
                     pid,
                     if (stdoutPipe != null) {
                         FileDescriptor(stdoutPipe[0])
@@ -109,6 +115,7 @@ class ProcessBuilder(
 }
 
 class Process(
+    private val command: Array<out String>,
     private val pid: Int,
     val stdout: FileDescriptor?,
     val stderr: FileDescriptor?,
@@ -121,7 +128,7 @@ class Process(
                 perror("waitpid")
                 throw WaitTimeoutException("Failed to wait for the process")
             }
-            return wifexited(status.value)
+            return processExitStatus(status.value)
         }
     }
 
@@ -137,23 +144,40 @@ class Process(
                 val waitPidResult = waitpid(pid, status.ptr, WNOHANG)
                 if (waitPidResult == -1) {
                     perror("waitpid")
-                    throw WaitTimeoutException("Failed to wait for the process")
+                    error("Failed to wait for the process")
                 } else if (waitPidResult == 0) {
                     delay(sleepInterval)
                     if (startTime.elapsedNow() > duration) {
-                        println("Timeout! Sending SIGKILL to the process")
+                        info("Timeout! Sending SIGKILL to the process($command): $duration exceeded.")
                         kill(pid, SIGKILL)
                     }
                     continue
                 } else {
-                    return wifexited(status.value)
+                    return processExitStatus(status.value)
                 }
             }
         }
         error("Unreachable")
     }
 
-    private fun wifexited(value: Int): Int = (value and 0xff00) shr 8
+    private fun processExitStatus(status: Int): Int =
+        when {
+            wifexited(status) -> wexitstatus(status)
+            wifsignaled(status) -> {
+                val signal = wtermsig(status)
+                error("Process was terminated by signal($command) $signal")
+            }
+
+            else -> error("Process did not exit normally($command): status = $status")
+        }
+
+    private fun wifexited(value: Int): Boolean = (value and 0xff) == 0
+
+    private fun wexitstatus(value: Int): Int = (value shr 8) and 0xff
+
+    private fun wifsignaled(value: Int): Boolean = (value and 0xff) != 0 && (value and 0x7f) != 0x7f
+
+    private fun wtermsig(value: Int): Int = value and 0x7f
 }
 
 class FileDescriptor(

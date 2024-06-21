@@ -8,19 +8,18 @@ import meetnote3.recorder.ScreenRecorder
 import meetnote3.recorder.mix
 import meetnote3.recorder.startAudioRecording
 import meetnote3.recorder.startScreenRecord
+import okio.FileSystem
 import platform.AVFoundation.AVFileTypeMPEG4
 import platform.ScreenCaptureKit.SCContentFilter
 import platform.ScreenCaptureKit.SCDisplay
 import platform.ScreenCaptureKit.SCStreamConfiguration
-import platform.posix.perror
-import platform.posix.unlink
 
 import kotlinx.cinterop.BetaInteropApi
 
 class CaptureMixService {
     @BetaInteropApi
     suspend fun start(documentDirectory: DocumentDirectory): CaptureState {
-        val micFileName = documentDirectory.micFilePath()
+        val micFileName = documentDirectory.micFilePath().toString()
         val screenFileName = documentDirectory.screenFilePath()
 
         println("Recording audio and screen to $micFileName and $screenFileName ...")
@@ -42,7 +41,7 @@ class CaptureMixService {
         }
 
         val screenRecorder = startScreenRecord(
-            screenFileName,
+            screenFileName.toString(),
             contentFilter,
             enableVideo = false,
             enableAudio = true,
@@ -74,18 +73,15 @@ data class CaptureState(
 
         println("Starting mix...")
 
-        mix(inputFileNames = listOf(micFile, screenFile), outputFileName = outFileName)
+        mix(
+            inputFileNames = listOf(micFile.toString(), screenFile.toString()),
+            outputFileName = outFileName.toString(),
+        )
 
         println("Created mix file: $outFileName")
 
-        if (unlink(micFile) != 0) {
-            perror("unlink $micFile")
-            info("Failed to delete $micFile")
-        }
-        if (unlink(screenFile) != 0) {
-            perror("unlink $screenFile")
-            info("Failed to delete $screenFile")
-        }
+        FileSystem.SYSTEM.delete(micFile, false)
+        FileSystem.SYSTEM.delete(screenFile, false)
         info("Deleted temp files($micFile, $screenFile)")
     }
 }
