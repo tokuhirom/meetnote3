@@ -7,10 +7,10 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsChannel
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
-import meetnote3.model.getHomeDirectory
-import meetnote3.model.mkdirP
 import meetnote3.utils.ProcessBuilder
 import meetnote3.utils.fileExists
+import meetnote3.utils.getHomeDirectory
+import meetnote3.utils.mkdirP
 import platform.posix.fclose
 import platform.posix.fopen
 import platform.posix.fwrite
