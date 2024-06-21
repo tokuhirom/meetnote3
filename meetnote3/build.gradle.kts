@@ -21,7 +21,7 @@ kotlin {
                 implementation("io.ktor:ktor-client-core")
                 implementation("io.ktor:ktor-client-darwin")
 
-                implementation("com.squareup.okio:okio:3.0.0")
+                implementation("com.squareup.okio:okio:3.9.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
             }
