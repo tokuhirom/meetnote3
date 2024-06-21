@@ -1,6 +1,7 @@
 import meetnote3.initLogger
 import meetnote3.service.CaptureMixService
 import meetnote3.service.RecordingService
+import meetnote3.service.RecoveringService
 import meetnote3.service.SummarizeService
 import meetnote3.service.WhisperTranscriptService
 import meetnote3.service.WindowMonitoringService
@@ -63,12 +64,18 @@ fun startWholeWorkers() {
     }
 }
 
+fun startRecoveryProcess() {
+    CoroutineScope(Dispatchers.Default).launch {
+        RecoveringService().recover()
+    }
+}
+
 @BetaInteropApi
 fun main(args: Array<String>) {
     initLogger()
 
+    startRecoveryProcess()
     startWholeWorkers()
-//    startRecoveryProcess()
 
     CFRunLoopRun()
 }

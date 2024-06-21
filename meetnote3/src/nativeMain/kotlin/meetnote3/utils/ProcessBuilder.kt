@@ -1,5 +1,6 @@
 package meetnote3.utils
 
+import meetnote3.info
 import platform.posix.SIGKILL
 import platform.posix.STDERR_FILENO
 import platform.posix.STDOUT_FILENO
@@ -94,6 +95,7 @@ class ProcessBuilder(
                 }
 
                 return Process(
+                    command,
                     pid,
                     if (stdoutPipe != null) {
                         FileDescriptor(stdoutPipe[0])
@@ -113,6 +115,7 @@ class ProcessBuilder(
 }
 
 class Process(
+    private val command: Array<out String>,
     private val pid: Int,
     val stdout: FileDescriptor?,
     val stderr: FileDescriptor?,
@@ -145,7 +148,7 @@ class Process(
                 } else if (waitPidResult == 0) {
                     delay(sleepInterval)
                     if (startTime.elapsedNow() > duration) {
-                        println("Timeout! Sending SIGKILL to the process")
+                        info("Timeout! Sending SIGKILL to the process($command): $duration exceeded.")
                         kill(pid, SIGKILL)
                     }
                     continue
@@ -162,10 +165,10 @@ class Process(
             wifexited(status) -> wexitstatus(status)
             wifsignaled(status) -> {
                 val signal = wtermsig(status)
-                error("Process was terminated by signal $signal")
+                error("Process was terminated by signal($command) $signal")
             }
 
-            else -> error("Process did not exit normally: status = $status")
+            else -> error("Process did not exit normally($command): status = $status")
         }
 
     private fun wifexited(value: Int): Boolean = (value and 0xff) == 0

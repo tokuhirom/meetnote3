@@ -1,7 +1,8 @@
 package meetnote3.model
 
+import meetnote3.info
 import meetnote3.utils.getHomeDirectory
-import meetnote3.utils.mkdirP
+import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
 
@@ -43,14 +44,33 @@ data class DocumentDirectory(
     fun summarizerFilePath() = basedir.resolve("summarizer.py")
 
     companion object {
-        fun create(): DocumentDirectory = DocumentDirectory(baseDirectory())
+        fun create(): DocumentDirectory {
+            val basedir = baseDirectory()
+            val dateTimeString = generateTimestamp()
+            val dir = basedir.resolve(dateTimeString)
+            FileSystem.SYSTEM.createDirectories(dir)
+            return DocumentDirectory(dir)
+        }
 
         private fun baseDirectory(): Path {
             val home = getHomeDirectory()
-            val dateTimeString = generateTimestamp()
-            val directory = "$home/Documents/MeetNote3/$dateTimeString"
-            mkdirP(directory)
-            return directory.toPath()
+            val directory = "$home/Documents/MeetNote3/".toPath()
+            FileSystem.SYSTEM.createDirectories(directory)
+            return directory
+        }
+
+        fun listAll(): List<DocumentDirectory> {
+            val baseDirectory = baseDirectory()
+            info("Listing all directories in $baseDirectory")
+            return FileSystem.SYSTEM
+                .list(baseDirectory)
+                .filter {
+                    FileSystem.SYSTEM.metadata(it).isDirectory
+                }.map {
+                    DocumentDirectory(it)
+                }.sortedBy {
+                    it.basedir.toString()
+                }
         }
     }
 }

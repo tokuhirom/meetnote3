@@ -17,6 +17,7 @@ import platform.posix.fclose
 import platform.posix.fopen
 import platform.posix.fwrite
 
+import kotlin.time.Duration
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.refTo
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +30,8 @@ import kotlinx.coroutines.withContext
 class WhisperTranscriptService(
     private val modelName: String = "small",
     private val language: String = "japanese",
+    private val whisperCppTimeout: Duration = Duration.parse("1h"),
+    private val ffmpegTimeout: Duration = Duration.parse("1h"),
 ) {
     private val mutableTranscriptionCompletionFlow = MutableSharedFlow<DocumentDirectory>()
     val readyForSummarizeFlow: SharedFlow<DocumentDirectory> = mutableTranscriptionCompletionFlow.asSharedFlow()
@@ -70,7 +73,7 @@ class WhisperTranscriptService(
                 "16000", // sample rate should be 16khz
                 outputFilePath.toString(),
             ).start(captureStdout = true, captureStderr = true)
-        val exitCode = process.waitUntil(kotlin.time.Duration.parse("60s"))
+        val exitCode = process.waitUntil(ffmpegTimeout)
         if (exitCode != 0) {
             throw Exception("ffmpeg failed with exit code $exitCode. Stderr: ${process.stderr?.slurpString()}")
         }
@@ -98,7 +101,7 @@ class WhisperTranscriptService(
             language,
             waveFilePath.toString(),
         ).start(captureStdout = false, captureStderr = false)
-        val exitCode = process.waitUntil(kotlin.time.Duration.parse("60s"))
+        val exitCode = process.waitUntil(whisperCppTimeout)
         if (exitCode != 0) {
             throw Exception("whisper-cpp failed with exit code $exitCode. Stderr: ${process.stderr?.slurpString()}")
         }
