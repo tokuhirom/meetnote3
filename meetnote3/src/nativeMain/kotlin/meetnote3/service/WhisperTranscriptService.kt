@@ -8,18 +8,11 @@ import io.ktor.client.statement.bodyAsChannel
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
 import meetnote3.utils.ProcessBuilder
-import meetnote3.utils.fileExists
 import meetnote3.utils.getHomeDirectory
-import meetnote3.utils.mkdirP
 import okio.FileSystem
 import okio.Path
-import platform.posix.fclose
-import platform.posix.fopen
-import platform.posix.fwrite
 
 import kotlin.time.Duration
-import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.refTo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -77,7 +70,7 @@ class WhisperTranscriptService(
         if (exitCode != 0) {
             throw Exception("ffmpeg failed with exit code $exitCode. Stderr: ${process.stderr?.slurpString()}")
         }
-        if (fileExists(outputFilePath.toString())) {
+        if (FileSystem.SYSTEM.exists(outputFilePath)) {
             info("Converted to wave file: file://$outputFilePath")
         } else {
             throw Exception("Failed to convert to wave file: file://$outputFilePath")
@@ -85,18 +78,18 @@ class WhisperTranscriptService(
     }
 
     private suspend fun runWhisperCpp(
-        modelFilePath: String,
+        modelFilePath: Path,
         waveFilePath: Path,
         documentDirectory: DocumentDirectory,
     ) {
-        val outputLrcFilePath = documentDirectory.lrcFilePath().toString()
+        val outputLrcFilePath = documentDirectory.lrcFilePath()
         val process = ProcessBuilder(
             "whisper-cpp",
             "--model",
-            modelFilePath,
+            modelFilePath.toString(),
             "--output-lrc",
             "--output-file",
-            outputLrcFilePath.replace(".lrc", ""),
+            outputLrcFilePath.toString().replace(".lrc", ""),
             "--language",
             language,
             waveFilePath.toString(),
@@ -106,25 +99,24 @@ class WhisperTranscriptService(
             throw Exception("whisper-cpp failed with exit code $exitCode. Stderr: ${process.stderr?.slurpString()}")
         }
 
-        if (fileExists(outputLrcFilePath)) {
+        if (FileSystem.SYSTEM.exists(outputLrcFilePath)) {
             info("Transcribed to lrc file: file://$outputLrcFilePath")
         } else {
             throw Exception("Failed to transcribe to lrc file: file://$outputLrcFilePath")
         }
     }
 
-    @OptIn(ExperimentalForeignApi::class)
-    private suspend fun downloadModel(modelName: String): String {
+    private suspend fun downloadModel(modelName: String): Path {
         val baseUrl = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main"
         val modelUrl = "$baseUrl/ggml-$modelName.bin"
 
         val homedir = getHomeDirectory()
-        val modelDirectory = "$homedir/Documents/models"
-        mkdirP(modelDirectory)
+        val modelDirectory = homedir.resolve("Documents/models")
+        FileSystem.SYSTEM.createDirectories(modelDirectory)
 
-        val modelPath = "$modelDirectory/ggml-$modelName.bin"
+        val modelPath = modelDirectory.resolve("ggml-$modelName.bin")
 
-        if (fileExists(modelPath)) {
+        if (FileSystem.SYSTEM.exists(modelPath)) {
             return modelPath
         }
 
@@ -133,18 +125,14 @@ class WhisperTranscriptService(
         val responseBody = response.bodyAsChannel()
 
         withContext(Dispatchers.IO) {
-            val file =
-                fopen(modelPath, "wb") ?: throw RuntimeException("Cannot open file for writing: $modelPath")
-            try {
+            FileSystem.SYSTEM.write(modelPath) {
+                val buffer = ByteArray(4096)
                 while (!responseBody.isClosedForRead) {
-                    val buffer = ByteArray(4096)
                     val bytesRead = responseBody.readAvailable(buffer, 0, buffer.size)
                     if (bytesRead > 0) {
-                        fwrite(buffer.refTo(0), 1u, bytesRead.toULong(), file)
+                        this.write(buffer, 0, bytesRead)
                     }
                 }
-            } finally {
-                fclose(file)
             }
         }
 

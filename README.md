@@ -8,7 +8,6 @@
 
 ```shell
 brew install whisper-cpp ffmpeg
-pip3 install transformers torch sentencepiece protobuf
 ```
 
 ## License

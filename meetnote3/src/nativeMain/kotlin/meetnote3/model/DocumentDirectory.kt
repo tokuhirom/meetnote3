@@ -4,7 +4,6 @@ import meetnote3.info
 import meetnote3.utils.getHomeDirectory
 import okio.FileSystem
 import okio.Path
-import okio.Path.Companion.toPath
 
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -52,9 +51,9 @@ data class DocumentDirectory(
             return DocumentDirectory(dir)
         }
 
-        private fun baseDirectory(): Path {
+        fun baseDirectory(): Path {
             val home = getHomeDirectory()
-            val directory = "$home/Documents/MeetNote3/".toPath()
+            val directory = home.resolve("Documents/MeetNote3/")
             FileSystem.SYSTEM.createDirectories(directory)
             return directory
         }
