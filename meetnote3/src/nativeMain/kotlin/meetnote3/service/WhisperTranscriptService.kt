@@ -63,7 +63,8 @@ class WhisperTranscriptService(
                 "-i",
                 inputFilePath.toString(),
                 "-ar",
-                "16000", // sample rate should be 16khz
+                // sample rate should be 16khz
+                "16000",
                 outputFilePath.toString(),
             ).start(captureStdout = true, captureStderr = true)
         val exitCode = process.waitUntil(ffmpegTimeout)
