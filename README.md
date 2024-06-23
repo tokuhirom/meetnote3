@@ -1,5 +1,3 @@
-Here's the updated README with the requested additions:
-
 # Meetnote3
 
 ## Overview
