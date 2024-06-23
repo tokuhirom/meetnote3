@@ -9,7 +9,15 @@ import meetnote3.service.WindowMonitoringService
 import meetnote3.utils.ProcessBuilder
 import meetnote3.utils.XdgAppDirectories
 import okio.FileSystem
-import platform.CoreFoundation.CFRunLoopRun
+import platform.AppKit.NSApplication
+import platform.AppKit.NSApplicationDelegateProtocol
+import platform.AppKit.NSMenu
+import platform.AppKit.NSMenuItem
+import platform.AppKit.NSStatusBar
+import platform.AppKit.NSVariableStatusItemLength
+import platform.Foundation.NSNotification
+import platform.Foundation.NSSelectorFromString
+import platform.darwin.NSObject
 import platform.posix.dup2
 import platform.posix.fileno
 import platform.posix.fopen
@@ -20,6 +28,7 @@ import platform.posix.stdout
 import kotlin.time.Duration
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.autoreleasepool
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -112,6 +121,36 @@ fun redirectOutput(stdoutFilePath: String) {
     println("Buffering disabled") // Debug log
 }
 
+@OptIn(ExperimentalForeignApi::class)
+fun startTrayIcon() {
+    autoreleasepool {
+        val app = NSApplication.sharedApplication()
+
+        val appDelegate =
+            object : NSObject(), NSApplicationDelegateProtocol {
+                override fun applicationDidFinishLaunching(notification: NSNotification) {
+                    val statusItem =
+                        NSStatusBar.systemStatusBar.statusItemWithLength(NSVariableStatusItemLength)
+                    statusItem.button?.title = "Meetnote3"
+                    val menu =
+                        NSMenu().apply {
+                            addItem(
+                                NSMenuItem(
+                                    "Quit",
+                                    action = NSSelectorFromString("terminate:"),
+                                    keyEquivalent = "q",
+                                ),
+                            )
+                        }
+                    statusItem.menu = menu
+                }
+            }
+
+        app.delegate = appDelegate
+        app.run()
+    }
+}
+
 @BetaInteropApi
 fun main(args: Array<String>) {
     val shareDir = XdgAppDirectories("meetnote3").getShareDir()
@@ -127,5 +166,5 @@ fun main(args: Array<String>) {
     startRecoveryProcess()
     startWholeWorkers()
 
-    CFRunLoopRun()
+    startTrayIcon()
 }
