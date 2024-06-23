@@ -1,14 +1,33 @@
+Here's the updated README with the requested additions:
+
 # Meetnote3
 
-## Supported Environment
+## Overview
 
-- macOS 14.4.1+ Arm64
+Meetnote3 is a powerful and convenient tool designed to run on macOS 14.4.1+ Arm64. It utilizes screencapturekit
+and is written in Kotlin Native, providing seamless integration and performance. This project is the successor
+to [Meetnote2](https://github.com/tokuhirom/meetnote2).
 
-## Install dependencies
+## Features
+
+- **Automatic Recording**: Automatically records audio when a Zoom window is detected.
+- **AI Transcription**: Transcribes the recorded audio using advanced AI technology.
+- **AI-Powered Summarization**: Generates concise summaries from the transcriptions using cutting-edge AI,
+  saving you time and effort.
+
+## Installation
+
+To set up Meetnote3, you need to install dependencies using Homebrew. While it's not the simplest setup, it's
+straightforward enough for most users.
 
 ```shell
 brew install whisper-cpp ffmpeg
 ```
+
+(If you don't have Homebrew installed, you can find instructions [here](https://brew.sh/).)
+
+After installing the dependencies, you can download the binary from the **GitHub releases page**(Not available
+yet)
 
 ## License
 
@@ -35,3 +54,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
+
+## Development Status
+
+Meetnote3 is currently under active development. We are actively seeking feedback to improve the tool. Please
+feel free to contribute your thoughts and suggestions!
+
+Stay tuned for more features and improvements!
