@@ -4,6 +4,9 @@ import platform.posix.getenv
 
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.toKString
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 const val LOG_LEVEL_TRACE = 0
 const val LOG_LEVEL_DEBUG = 1
@@ -32,30 +35,35 @@ fun setLogLevel(level: Int) {
 
 fun trace(message: String) {
     if (logLevel <= LOG_LEVEL_TRACE) {
-        println("[TRACE] $message")
+        println("${timestamp()} [TRACE] $message")
     }
 }
 
 fun debug(message: String) {
     if (logLevel <= LOG_LEVEL_DEBUG) {
-        println("[DEBUG] $message")
+        println("${timestamp()} [DEBUG] $message")
     }
 }
 
 fun info(message: String) {
     if (logLevel <= LOG_LEVEL_INFO) {
-        println("[INFO] $message")
+        println("${timestamp()} [INFO] $message")
     }
 }
 
 fun warning(message: String) {
     if (logLevel <= LOG_LEVEL_WARNING) {
-        eprintln("[WARNING] $message")
+        eprintln("${timestamp()} [WARNING] $message")
     }
 }
 
 fun error(message: String) {
     if (logLevel <= LOG_LEVEL_ERROR) {
-        eprintln("[ERROR] $message")
+        eprintln("${timestamp()} [ERROR] $message")
     }
+}
+
+private fun timestamp(): String {
+    val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    return now.toString()
 }
