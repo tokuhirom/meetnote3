@@ -10,6 +10,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import meetnote3.info
+import meetnote3.utils.getChildProcs
 
 import kotlinx.coroutines.runBlocking
 
@@ -33,7 +34,12 @@ class Server {
             install(RequestLoggingPlugin)
             install(Routing) {
                 get("/") {
-                    call.respondText("Hello, Meetnote3!", ContentType.Text.Html)
+                    call.respondText(
+                        // TODO escape
+                        "Hello, Meetnote3!<br>Procs:\n" +
+                            getChildProcs().joinToString("\n") { it.toString() },
+                        ContentType.Text.Html,
+                    )
                 }
             }
         }
