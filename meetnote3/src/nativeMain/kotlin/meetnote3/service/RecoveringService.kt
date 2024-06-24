@@ -16,8 +16,13 @@ class RecoveringService {
         val dirs = DocumentDirectory.listAll()
         info("Recovering: ${dirs.size} directories.")
         dirs.forEach {
-            recoverDocument(it)
-            info("Recovering: $it")
+            try {
+                info("Recovering: $it")
+                recoverDocument(it)
+            } catch (e: Exception) {
+                info("Failed to recover: $it")
+                e.printStackTrace()
+            }
         }
     }
 

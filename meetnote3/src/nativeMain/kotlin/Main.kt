@@ -1,6 +1,7 @@
 import meetnote3.info
 import meetnote3.initLogger
 import meetnote3.model.generateTimestamp
+import meetnote3.server.Server
 import meetnote3.service.EnvironmentDiagnosticService
 import meetnote3.service.RecoveringService
 import meetnote3.service.WholeWorkersFactoryService
@@ -34,6 +35,9 @@ fun main(args: Array<String>) {
 
     WholeWorkersFactoryService().runAll()
 
+    val port = Server().startServer()
+    info("Server started at http://localhost:$port/")
+
     info("Registering tray icon...")
-    startTrayIcon()
+    startTrayIcon(port)
 }

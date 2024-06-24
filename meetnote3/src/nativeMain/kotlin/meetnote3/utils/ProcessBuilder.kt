@@ -148,7 +148,7 @@ class Process(
                 } else if (waitPidResult == 0) {
                     delay(sleepInterval)
                     if (startTime.elapsedNow() > duration) {
-                        info("Timeout! Sending SIGKILL to the process($command): $duration exceeded.")
+                        info("Timeout! Sending SIGKILL to the process(${command.toList()}): $duration exceeded.")
                         kill(pid, SIGKILL)
                     }
                     continue
@@ -165,10 +165,10 @@ class Process(
             wifexited(status) -> wexitstatus(status)
             wifsignaled(status) -> {
                 val signal = wtermsig(status)
-                error("Process was terminated by signal($command) $signal")
+                error("Process was terminated by signal(${command.toList()}) $signal")
             }
 
-            else -> error("Process did not exit normally($command): status = $status")
+            else -> error("Process did not exit normally(${command.toList()}): status = $status")
         }
 
     private fun wifexited(value: Int): Boolean = (value and 0xff) == 0
