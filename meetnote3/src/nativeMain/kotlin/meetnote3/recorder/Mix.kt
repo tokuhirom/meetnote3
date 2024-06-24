@@ -66,7 +66,7 @@ suspend fun mix(
         }
 
         AVAssetExportSessionStatusFailed, AVAssetExportSessionStatusCancelled -> {
-            warn("Failed to mix audio files: ${exporter.error?.localizedDescription}")
+            warn("Failed to mix audio files($inputFileNames to $outputFileName): ${exporter.error?.localizedDescription}")
         }
 
         else -> {
