@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 
 class WhisperTranscriptService(
-    private val modelName: String = "small",
+    private val modelName: String = "medium",
     private val language: String = "japanese",
     private val whisperCppTimeout: Duration = Duration.parse("1h"),
     private val ffmpegTimeout: Duration = Duration.parse("1h"),
