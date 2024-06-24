@@ -8,7 +8,9 @@ import okio.Path
 
 import kotlin.time.Duration
 
-class SummarizeService {
+class SummarizeService(
+    private val summarizerCommandTimeout: Duration = Duration.parse("1h"),
+) {
     private var installedLibraries = false
 
     suspend fun summarize(documentDirectory: DocumentDirectory) {
@@ -35,7 +37,7 @@ class SummarizeService {
                     summaryFilePath.toString(),
                 )
             val process = processBuilder.start(captureStdout = false, captureStderr = false)
-            process.waitUntil(Duration.parse("30s"))
+            process.waitUntil(summarizerCommandTimeout)
             println("Summary ready: file://$summaryFilePath")
         } finally {
             FileSystem.SYSTEM.delete(summarizerFilePath)

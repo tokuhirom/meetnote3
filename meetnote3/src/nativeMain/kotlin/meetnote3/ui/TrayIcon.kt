@@ -10,13 +10,15 @@ import platform.AppKit.NSVariableStatusItemLength
 import platform.Foundation.NSNotification
 import platform.Foundation.NSSelectorFromString
 import platform.darwin.NSObject
+import platform.posix.system
 
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.autoreleasepool
 
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-fun startTrayIcon() {
+fun startTrayIcon(serverPort: Int) {
     autoreleasepool {
         val app = NSApplication.sharedApplication()
 
@@ -31,6 +33,13 @@ fun startTrayIcon() {
                         NSMenu().apply {
                             addItem(
                                 NSMenuItem(
+                                    "Open Browser",
+                                    action = NSSelectorFromString("openBrowser"),
+                                    keyEquivalent = "o",
+                                ),
+                            )
+                            addItem(
+                                NSMenuItem(
                                     "Quit",
                                     action = NSSelectorFromString("terminate:"),
                                     keyEquivalent = "q",
@@ -38,6 +47,12 @@ fun startTrayIcon() {
                             )
                         }
                     statusItem.menu = menu
+                }
+
+                @ObjCAction
+                fun openBrowser() {
+                    info("Open browser")
+                    system("open http://localhost:$serverPort/")
                 }
             }
 

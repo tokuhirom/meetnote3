@@ -20,6 +20,8 @@ kotlin {
                 implementation(project.dependencies.platform("io.ktor:ktor-bom:2.3.12"))
                 implementation("io.ktor:ktor-client-core")
                 implementation("io.ktor:ktor-client-darwin")
+                implementation("io.ktor:ktor-server-core")
+                implementation("io.ktor:ktor-server-cio")
 
                 implementation("com.squareup.okio:okio:3.9.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
