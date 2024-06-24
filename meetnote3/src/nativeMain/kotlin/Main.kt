@@ -1,3 +1,4 @@
+import meetnote3.info
 import meetnote3.initLogger
 import meetnote3.model.generateTimestamp
 import meetnote3.service.EnvironmentDiagnosticService
@@ -23,7 +24,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 fun startTrayIcon() {
     autoreleasepool {
         val app = NSApplication.sharedApplication()
@@ -31,6 +32,7 @@ fun startTrayIcon() {
         val appDelegate =
             object : NSObject(), NSApplicationDelegateProtocol {
                 override fun applicationDidFinishLaunching(notification: NSNotification) {
+                    info("Application did finish launching")
                     val statusItem =
                         NSStatusBar.systemStatusBar.statusItemWithLength(NSVariableStatusItemLength)
                     statusItem.button?.title = "Meetnote3"
@@ -73,5 +75,6 @@ fun main(args: Array<String>) {
 
     WholeWorkersFactoryService().runAll()
 
+    info("Registering tray icon...")
     startTrayIcon()
 }
