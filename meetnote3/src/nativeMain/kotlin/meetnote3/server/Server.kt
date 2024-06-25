@@ -1,30 +1,21 @@
 package meetnote3.server
 
 import io.ktor.http.ContentType
-import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.application.call
 import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Routing
-import io.ktor.server.routing.get
 import meetnote3.info
-import meetnote3.model.DocumentDirectory
-import meetnote3.server.response.MeetingLogEntity
-import meetnote3.server.response.MeetingNoteDetailResponse
-import meetnote3.static.FRONTEND_CSS
-import meetnote3.static.FRONTEND_HTML
-import meetnote3.static.FRONTEND_JS
-import meetnote3.utils.getChildProcs
-import meetnote3.utils.listSystemLogFiles
+import meetnote3.server.routes.meetingLogRoutes
+import meetnote3.server.routes.procsRoutes
+import meetnote3.server.routes.staticContentRoutes
+import meetnote3.server.routes.systemLogRoutes
 import okio.FileSystem
-import okio.Path
 import okio.Path.Companion.toPath
 import platform.posix.getenv
 
@@ -61,96 +52,10 @@ class Server {
             // ktor-server-call-logging is not supported on kotlin native@2.3.12.
             install(RequestLoggingPlugin)
             install(Routing) {
-                get("/") {
-                    loadStaticResource(
-                        call,
-                        ContentType.Text.Html,
-                        "MEETNOTE3_HTML_DEBUG",
-                        FRONTEND_HTML,
-                    )
-                }
-                get("/frontend.js") {
-                    loadStaticResource(
-                        call,
-                        ContentType.Text.JavaScript,
-                        "MEETNOTE3_JS_DEBUG",
-                        FRONTEND_JS,
-                    )
-                }
-                get("/frontend.css") {
-                    loadStaticResource(
-                        call,
-                        ContentType.Text.CSS,
-                        "MEETNOTE3_CSS_DEBUG",
-                        FRONTEND_CSS,
-                    )
-                }
-
-                // API endpoints.
-                get("/api/meeting-logs") {
-                    val documents = DocumentDirectory
-                        .listAll()
-                        .map {
-                            MeetingLogEntity(it.basedir.name)
-                        }.sortedByDescending {
-                            it.name
-                        }.toList()
-                    call.respond(documents)
-                }
-                // get meeting note detail
-                get("/api/meeting-logs/{name}") {
-                    val meetingNote = call.parameters["name"]
-                    val document = DocumentDirectory.find(meetingNote!!)
-                    if (document != null) {
-                        val summary = try {
-                            FileSystem.SYSTEM.read(document.summaryFilePath()) {
-                                readUtf8()
-                            }
-                        } catch (e: Exception) {
-                            info("Summary file not found: ${e.message}")
-                            null
-                        }
-                        val lrc = try {
-                            FileSystem.SYSTEM.read(document.lrcFilePath()) {
-                                readUtf8()
-                            }
-                        } catch (e: Exception) {
-                            info("Summary file not found: ${e.message}")
-                            null
-                        }
-                        call.respond(MeetingNoteDetailResponse(summary = summary, lrc = lrc))
-                    } else {
-                        call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
-                            "Document not found."
-                        }
-                    }
-                }
-                // meeting-note detail.
-                get("/api/system-logs") {
-                    val systemLogFiles = listSystemLogFiles()
-                        .sortedByDescending {
-                            it.name
-                        }.take(3)
-                        .map { it.name }
-                    call.respond(systemLogFiles)
-                }
-                // get system log detail
-                get("/api/system-logs/{name}") {
-                    val systemLog = call.parameters["name"]
-                    val systemLogFile: Path? = listSystemLogFiles().find { it.name == systemLog }
-                    if (systemLogFile != null) {
-                        FileSystem.SYSTEM.read(systemLogFile) {
-                            call.respondText(readUtf8())
-                        }
-                    } else {
-                        call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
-                            "System log file not found."
-                        }
-                    }
-                }
-                get("/api/child-procs") {
-                    call.respond(getChildProcs())
-                }
+                this.staticContentRoutes()
+                this.meetingLogRoutes()
+                this.systemLogRoutes()
+                this.procsRoutes()
             }
         }
         server.start(wait = false)
