@@ -19,14 +19,6 @@ import kotlinx.cinterop.refTo
 import kotlinx.cinterop.sizeOf
 import kotlinx.cinterop.toKString
 import kotlinx.cinterop.value
-import kotlinx.serialization.Serializable
-
-@Serializable
-data class ProcessInfo(
-    val pid: Int,
-    val ppid: Int,
-    val name: String,
-)
 
 @OptIn(ExperimentalForeignApi::class)
 fun getProcesses(): List<ProcessInfo> {

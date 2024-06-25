@@ -18,8 +18,8 @@ import kotlinx.cinterop.ObjCAction
 
 class TrayIconHandler {
     // keep these properties as fields to avoid being garbage collected.
-    lateinit var appDelegate: NSApplicationDelegateProtocol
-    lateinit var statusItem: NSStatusItem
+    private lateinit var appDelegate: NSApplicationDelegateProtocol
+    private lateinit var statusItem: NSStatusItem
 
     @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
     fun startTrayIcon(serverPort: Int): NSApplicationDelegateProtocol {
