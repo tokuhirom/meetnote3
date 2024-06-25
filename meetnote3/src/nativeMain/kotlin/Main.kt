@@ -5,10 +5,11 @@ import meetnote3.server.Server
 import meetnote3.service.EnvironmentDiagnosticService
 import meetnote3.service.RecoveringService
 import meetnote3.service.WholeWorkersFactoryService
-import meetnote3.ui.startTrayIcon
+import meetnote3.ui.TrayIconHandler
 import meetnote3.utils.XdgAppDirectories
 import meetnote3.utils.redirectOutput
 import okio.FileSystem
+import platform.AppKit.NSApplication
 
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.coroutines.CoroutineScope
@@ -38,6 +39,12 @@ fun main(args: Array<String>) {
     val port = Server().startServer()
     info("Server started at http://localhost:$port/")
 
+    val app = NSApplication.sharedApplication()
+
     info("Registering tray icon...")
-    startTrayIcon(port)
+    val trayIconHandler = TrayIconHandler()
+    val appDelegate = trayIconHandler.startTrayIcon(serverPort = port)
+    app.delegate = appDelegate
+    app.run()
+    error("Should not reach here.")
 }

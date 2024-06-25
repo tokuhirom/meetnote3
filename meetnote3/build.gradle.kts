@@ -10,7 +10,10 @@ plugins {
 kotlin {
     macosArm64("native") {
         binaries {
-            executable()
+            executable {
+                // show GC logs
+//                freeCompilerArgs += listOf("-Xruntime-logs=gc=info")
+            }
         }
     }
 
