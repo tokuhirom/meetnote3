@@ -73,5 +73,7 @@ data class DocumentDirectory(
                     it.basedir.toString()
                 }
         }
+
+        fun find(name: String): DocumentDirectory? = listAll().firstOrNull { it.basedir.name == name }
     }
 }

@@ -18,6 +18,9 @@ import kotlinx.coroutines.launch
 
 @BetaInteropApi
 fun main(args: Array<String>) {
+    val port = Server().startServer()
+    info("Server started at http://localhost:$port/")
+
     val systemLogPath = createNewSystemLogPath()
 
     println("Writing log to $systemLogPath")
@@ -26,6 +29,8 @@ fun main(args: Array<String>) {
 
     initLogger()
 
+    info("Server is ready: http://localhost:$port/")
+
     EnvironmentDiagnosticService().show()
 
     CoroutineScope(Dispatchers.Default).launch {
@@ -33,9 +38,6 @@ fun main(args: Array<String>) {
     }
 
     WholeWorkersFactoryService().runAll()
-
-    val port = Server().startServer()
-    info("Server started at http://localhost:$port/")
 
     CoroutineScope(Dispatchers.Default).launch {
         println("Showing child processes...")
