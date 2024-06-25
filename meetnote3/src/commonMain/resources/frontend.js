@@ -45,7 +45,7 @@ async function loadMeetingLogs() {
   for (let meetingLog of meetingLogs) {
     const li = document.createElement("li")
     const a = document.createElement("a")
-    a.innerText = meetingLog.name
+    a.innerText = meetingLog.shortName + " " + meetingLog.duration
     a.addEventListener("click", async () => {
       location.hash = "#/meeting-logs/" + meetingLog.name
       const data = await (await fetch("/api/meeting-logs/" + meetingLog.name)).json()

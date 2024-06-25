@@ -1,18 +1,24 @@
 package meetnote3.model
 
 import meetnote3.info
+import meetnote3.model.DocumentDirectory.Companion.dateTimeFormatter
 import meetnote3.utils.getHomeDirectory
 import okio.FileSystem
 import okio.Path
 
 import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format
+import kotlinx.datetime.format.DayOfWeekNames
+import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 
 fun generateTimestamp(): String {
     val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-    val dateTimeString = now.toString().replace(":", "-")
-    return dateTimeString
+    return now.format(dateTimeFormatter)
 }
 
 data class DocumentDirectory(
@@ -41,6 +47,11 @@ data class DocumentDirectory(
     fun summaryFilePath() = basedir.resolve("summary.txt")
 
     fun summarizerFilePath() = basedir.resolve("summarizer.py")
+
+    fun shortName(): String =
+        dateTimeFormatter
+            .parse(basedir.name)
+            .format(shortNameFormatter)
 
     companion object {
         fun create(): DocumentDirectory {
@@ -75,5 +86,51 @@ data class DocumentDirectory(
         }
 
         fun find(name: String): DocumentDirectory? = listAll().firstOrNull { it.basedir.name == name }
+
+        val dateTimeFormatter = LocalDateTime.Format {
+            date(
+                LocalDate.Format {
+                    year()
+                    char('-')
+                    monthNumber()
+                    char('-')
+                    dayOfMonth()
+                },
+            )
+            char('T')
+            time(
+                LocalTime.Format {
+                    hour()
+                    char('-')
+                    minute()
+                    char('-')
+                    second()
+                },
+            )
+        }
+
+        val shortNameFormatter =
+            LocalDateTime.Format {
+                date(
+                    LocalDate.Format {
+                        year()
+                        char('-')
+                        monthNumber()
+                        char('-')
+                        dayOfMonth()
+                        char('(')
+                        dayOfWeek(DayOfWeekNames.ENGLISH_ABBREVIATED)
+                        char(')')
+                    },
+                )
+                chars(" ")
+                time(
+                    LocalTime.Format {
+                        hour()
+                        char(':')
+                        minute()
+                    },
+                )
+            }
     }
 }
