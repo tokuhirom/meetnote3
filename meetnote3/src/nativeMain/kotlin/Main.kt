@@ -1,15 +1,13 @@
 import meetnote3.info
 import meetnote3.initLogger
-import meetnote3.model.generateTimestamp
 import meetnote3.server.Server
 import meetnote3.service.EnvironmentDiagnosticService
 import meetnote3.service.RecoveringService
 import meetnote3.service.WholeWorkersFactoryService
 import meetnote3.ui.startTrayIcon
-import meetnote3.utils.XdgAppDirectories
+import meetnote3.utils.createNewSystemLogPath
 import meetnote3.utils.getChildProcs
 import meetnote3.utils.redirectOutput
-import okio.FileSystem
 
 import kotlin.time.Duration
 import kotlinx.cinterop.BetaInteropApi
@@ -20,13 +18,11 @@ import kotlinx.coroutines.launch
 
 @BetaInteropApi
 fun main(args: Array<String>) {
-    val shareDir = XdgAppDirectories("meetnote3").getShareDir()
-    val logFile = shareDir / "meetnote3-${generateTimestamp()}.log"
-    FileSystem.Companion.SYSTEM.createDirectories(logFile.parent!!)
+    val systemLogPath = createNewSystemLogPath()
 
-    println("Writing log to $logFile")
+    println("Writing log to $systemLogPath")
 
-    redirectOutput(logFile.toString())
+    redirectOutput(systemLogPath.toString())
 
     initLogger()
 

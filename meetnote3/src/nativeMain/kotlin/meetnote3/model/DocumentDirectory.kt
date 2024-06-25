@@ -65,6 +65,8 @@ data class DocumentDirectory(
                 .list(baseDirectory)
                 .filter {
                     FileSystem.SYSTEM.metadata(it).isDirectory
+                }.filter {
+                    it.name.startsWith("2")
                 }.map {
                     DocumentDirectory(it)
                 }.sortedBy {

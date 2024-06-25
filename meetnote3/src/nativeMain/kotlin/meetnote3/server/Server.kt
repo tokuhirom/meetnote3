@@ -10,9 +10,22 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import meetnote3.info
+import meetnote3.model.DocumentDirectory
 import meetnote3.utils.getChildProcs
+import meetnote3.utils.listSystemLogFiles
 
 import kotlinx.coroutines.runBlocking
+import kotlinx.html.body
+import kotlinx.html.div
+import kotlinx.html.h1
+import kotlinx.html.h2
+import kotlinx.html.head
+import kotlinx.html.html
+import kotlinx.html.li
+import kotlinx.html.stream.createHTML
+import kotlinx.html.style
+import kotlinx.html.title
+import kotlinx.html.ul
 
 // https://ktor.io/docs/server-custom-plugins.html#on-call
 val RequestLoggingPlugin = createApplicationPlugin(name = "RequestLoggingPlugin") {
@@ -34,12 +47,63 @@ class Server {
             install(RequestLoggingPlugin)
             install(Routing) {
                 get("/") {
-                    call.respondText(
-                        // TODO escape
-                        "Hello, Meetnote3!<br>Procs:\n" +
-                            getChildProcs().joinToString("\n") { it.toString() },
-                        ContentType.Text.Html,
-                    )
+                    val src = createHTML().html {
+                        head {
+                            // load bootstrap css from CDN.
+                            title { +"Meetnote3" }
+                            style {
+                                +"""
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px; /* カラム間の隙間 */
+            padding: 5px;
+        }
+        @media (max-width: 800px) {
+            .row {
+                grid-template-columns: 1fr;
+            }
+        }
+                                """.trimIndent()
+                            }
+                        }
+                        body {
+                            h1 { +"Hello, Meetnote3!" }
+                            div("row") {
+                                div("column") {
+                                    h2 {
+                                        +"Current Child Procs"
+                                    }
+                                    ul {
+                                        getChildProcs().forEach {
+                                            li { +(it.pid.toString() + " " + it.name) }
+                                        }
+                                    }
+                                }
+                                div("column") {
+                                    h2 {
+                                        +"System Logs"
+                                    }
+                                    ul {
+                                        listSystemLogFiles().forEach {
+                                            li { +it.name }
+                                        }
+                                    }
+                                }
+                                div("column") {
+                                    h2 {
+                                        +"Meeting Logs"
+                                    }
+                                    ul {
+                                        DocumentDirectory.listAll().forEach {
+                                            li { +it.basedir.name }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    call.respondText(src, ContentType.Text.Html)
                 }
             }
         }
