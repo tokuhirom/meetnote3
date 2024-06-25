@@ -4,10 +4,11 @@ import meetnote3.server.Server
 import meetnote3.service.EnvironmentDiagnosticService
 import meetnote3.service.RecoveringService
 import meetnote3.service.WholeWorkersFactoryService
-import meetnote3.ui.startTrayIcon
+import meetnote3.ui.TrayIconHandler
 import meetnote3.utils.createNewSystemLogPath
 import meetnote3.utils.getChildProcs
 import meetnote3.utils.redirectOutput
+import platform.AppKit.NSApplication
 
 import kotlin.time.Duration
 import kotlinx.cinterop.BetaInteropApi
@@ -47,6 +48,12 @@ fun main(args: Array<String>) {
         }
     }
 
+    val app = NSApplication.sharedApplication()
+
     info("Registering tray icon...")
-    startTrayIcon(port)
+    val trayIconHandler = TrayIconHandler()
+    val appDelegate = trayIconHandler.startTrayIcon(serverPort = port)
+    app.delegate = appDelegate
+    app.run()
+    error("Should not reach here.")
 }
