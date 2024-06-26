@@ -8,6 +8,12 @@ import react.router.Navigate
 import react.router.RouteObject
 import react.router.dom.RouterProvider
 import react.router.dom.createHashRouter
+import view.ErrorPage
+import view.MeetingLogDetailComponent
+import view.MeetingLogListComponent
+import view.ProcsContent
+import view.SystemLogsDetailComponent
+import view.SystemLogsListComponent
 import web.dom.document
 
 // https://github.com/karakum-team/kotlin-mui-showcase/blob/5b7263a6a1379e40297f335f9e6be07e161dc9a7/src/jsMain/kotlin/team/karakum/MissedWrappers.kt#L8

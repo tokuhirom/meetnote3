@@ -1,3 +1,5 @@
+package view
+
 import emotion.react.css
 import js.errors.JsError
 import react.FC

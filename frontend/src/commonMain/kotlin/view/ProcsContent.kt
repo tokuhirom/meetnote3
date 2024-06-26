@@ -1,3 +1,6 @@
+package view
+
+import ApiClient
 import meetnote3.model.ProcessInfo
 import react.FC
 import react.dom.html.ReactHTML.div

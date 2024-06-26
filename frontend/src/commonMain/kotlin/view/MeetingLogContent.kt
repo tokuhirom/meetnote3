@@ -1,3 +1,6 @@
+package view
+
+import ApiClient
 import meetnote3.model.MeetingLogEntity
 import meetnote3.model.MeetingNoteDetailResponse
 import mui.material.Grid
@@ -14,6 +17,7 @@ import react.router.dom.NavLink
 import react.router.useParams
 import react.use.useAsyncEffect
 import react.useState
+import xs
 
 val MeetingLogListSidebarComponent = FC {
     Grid {

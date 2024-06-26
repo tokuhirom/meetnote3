@@ -1,3 +1,5 @@
+package view
+
 import mui.material.AppBar
 import mui.material.AppBarPosition
 import mui.material.Button
