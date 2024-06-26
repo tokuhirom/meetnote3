@@ -8,6 +8,7 @@ import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Routing
 import meetnote3.info
@@ -35,6 +36,7 @@ val RequestLoggingPlugin = createApplicationPlugin(name = "RequestLoggingPlugin"
 
 class Server {
     // return the port number.
+    @OptIn(ExperimentalForeignApi::class)
     fun startServer(): Int {
         // listen on a random port.
         // host is 127.0.0.1 to avoid listening on all interfaces.
@@ -47,6 +49,12 @@ class Server {
                         isLenient = true
                     },
                 )
+            }
+            val cors = getenv("MEETNOTE3_CORS")?.toKString()
+            if (cors != null) {
+                install(CORS) {
+                    allowHost(cors)
+                }
             }
 
             // ktor-server-call-logging is not supported on kotlin native@2.3.12.

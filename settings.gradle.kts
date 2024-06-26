@@ -4,3 +4,4 @@ plugins {
 rootProject.name = "meetnote3"
 
 include(":meetnote3")
+include(":frontend")

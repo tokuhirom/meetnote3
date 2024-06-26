@@ -28,6 +28,7 @@ kotlin {
                 implementation("io.ktor:ktor-server-cio")
                 implementation("io.ktor:ktor-server-content-negotiation")
                 implementation("io.ktor:ktor-serialization-kotlinx-json")
+                implementation("io.ktor:ktor-server-cors")
 
                 implementation("com.squareup.okio:okio:3.9.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
