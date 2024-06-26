@@ -1,62 +1,20 @@
-import emotion.react.css
-import js.errors.JsError
-import mui.material.AppBar
-import mui.material.AppBarPosition
-import mui.material.Button
-import mui.material.ButtonColor
-import mui.material.Toolbar
+import mui.material.CssBaseline
+import mui.material.GridProps
 import react.FC
 import react.Fragment
-import react.Props
 import react.create
 import react.dom.client.createRoot
-import react.dom.html.ReactHTML.div
+import react.router.Navigate
 import react.router.RouteObject
 import react.router.dom.RouterProvider
 import react.router.dom.createHashRouter
-import react.router.useRouteError
-import web.cssom.NamedColor
 import web.dom.document
 
-val NavBar =
-    FC {
-        AppBar {
-            position = AppBarPosition.static
-            Toolbar {
-                listOf("top", "about", "contact").forEach { name ->
-                    Button {
-                        color = ButtonColor.inherit
-                        +name.replaceFirstChar { it.titlecase() }
-                    }
-                }
-            }
-        }
-    }
-
-val RootContent =
-    FC {
-        NavBar()
-        div {
-            +"Root"
-        }
-    }
-val AboutContent =
-    FC {
-        NavBar()
-        div {
-            +"About page"
-        }
-    }
-val ErrorPage =
-    FC<Props> {
-        val error = useRouteError().unsafeCast<JsError>()
-
-        div {
-            css {
-                color = NamedColor.red
-            }
-            +error.message
-        }
+// https://github.com/karakum-team/kotlin-mui-showcase/blob/5b7263a6a1379e40297f335f9e6be07e161dc9a7/src/jsMain/kotlin/team/karakum/MissedWrappers.kt#L8
+inline var GridProps.xs: Int
+    get() = TODO("Prop is write-only!")
+    set(value) {
+        asDynamic().xs = value
     }
 
 fun main() {
@@ -66,19 +24,36 @@ fun main() {
         ?: error("Couldn't find root container!")
     createRoot(container).render(
         Fragment.create {
+            CssBaseline()
+
             RouterProvider {
                 router =
                     createHashRouter(
                         arrayOf(
                             RouteObject(
-                                path = "/",
-                                Component = RootContent,
+                                path = "/meeting-logs",
+                                Component = MeetingLogContent,
                                 ErrorBoundary = ErrorPage,
                             ),
                             RouteObject(
-                                path = "/about",
-                                Component = AboutContent,
+                                path = "/system-logs",
+                                Component = SystemLogsContent,
                                 ErrorBoundary = ErrorPage,
+                            ),
+                            RouteObject(
+                                path = "/procs",
+                                Component = ProcsContent,
+                                ErrorBoundary = ErrorPage,
+                            ),
+                            RouteObject(
+                                path = "*",
+                                Component = FC {
+                                    // Redirect to the root page if the path is not found
+                                    Navigate {
+                                        to = "/meeting-logs"
+                                        replace = true
+                                    }
+                                },
                             ),
                         ),
                     )

@@ -37,11 +37,11 @@ val RequestLoggingPlugin = createApplicationPlugin(name = "RequestLoggingPlugin"
 class Server {
     // return the port number.
     @OptIn(ExperimentalForeignApi::class)
-    fun startServer(): Int {
+    fun startServer(port: Int): Int {
         // listen on a random port.
         // host is 127.0.0.1 to avoid listening on all interfaces.
         // user can access the server by visiting http://localhost:<port>/
-        val server = embeddedServer(CIO, port = 0, host = "127.0.0.1") {
+        val server = embeddedServer(CIO, port = port, host = "127.0.0.1") {
             install(ContentNegotiation) {
                 json(
                     Json {

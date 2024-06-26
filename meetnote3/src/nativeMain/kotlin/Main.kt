@@ -9,17 +9,26 @@ import meetnote3.utils.createNewSystemLogPath
 import meetnote3.utils.getChildProcs
 import meetnote3.utils.redirectOutput
 import platform.AppKit.NSApplication
+import platform.posix.getenv
 
 import kotlin.time.Duration
 import kotlinx.cinterop.BetaInteropApi
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.toKString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalForeignApi::class)
+fun getPort(): Int = getenv("MEETNOTE3_PORT")?.toKString()?.toInt() ?: 0
+
+@OptIn(ExperimentalForeignApi::class)
 @BetaInteropApi
-fun main(args: Array<String>) {
-    val port = Server().startServer()
+fun main() {
+    getenv("MEETNOTE3_PORT")
+    val tryPort = getPort()
+    val port = Server().startServer(tryPort)
     info("Server started at http://localhost:$port/")
 
     val systemLogPath = createNewSystemLogPath()
