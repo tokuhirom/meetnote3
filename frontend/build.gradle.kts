@@ -18,8 +18,10 @@ kotlin {
     }
 
     sourceSets {
-        commonMain {
+        val commonMain by getting {
             dependencies {
+                implementation(project(":model"))
+
                 implementation(project.dependencies.platform("org.jetbrains.kotlin-wrappers:kotlin-wrappers-bom:1.0.0-pre.761"))
                 implementation("org.jetbrains.kotlin-wrappers:kotlin-emotion")
                 implementation("org.jetbrains.kotlin-wrappers:kotlin-react")
@@ -30,6 +32,7 @@ kotlin {
                 implementation("org.jetbrains.kotlin-wrappers:kotlin-mui-lab")
                 implementation("org.jetbrains.kotlin-wrappers:kotlin-mui-material")
                 implementation("org.jetbrains.kotlin-wrappers:kotlin-mui-system")
+                implementation("org.jetbrains.kotlin-wrappers:kotlin-react-use")
 
                 implementation(project.dependencies.platform("io.ktor:ktor-bom:2.3.12"))
                 implementation("io.ktor:ktor-client-core")
@@ -39,9 +42,9 @@ kotlin {
                 implementation("io.ktor:ktor-client-serialization")
                 implementation("io.ktor:ktor-client-logging")
                 implementation("io.ktor:ktor-client-json")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
             }
         }
     }

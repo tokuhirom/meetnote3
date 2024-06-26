@@ -21,6 +21,8 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
+                implementation(project(":model"))
+
                 implementation(project.dependencies.platform("io.ktor:ktor-bom:2.3.12"))
                 implementation("io.ktor:ktor-client-core")
                 implementation("io.ktor:ktor-client-darwin")
