@@ -35,7 +35,7 @@ jobs:
           perl -pi -e 's/__VERSION__/${{ github.event.release.tag_name }}/g' capjoy/src/nativeMain/kotlin/capjoy/command/VersionCommand.kt
 
       - name: Build Kotlin/Native binary
-        run: ./gradlew generateGpt2Kt generateFrontendJs :meetnote3:${{ matrix.job.target }}Binaries
+        run: ./gradlew :frontend:build generateGpt2Kt generateFrontendJs :meetnote3:${{ matrix.job.target }}Binaries
 
       - name: Rename binary
         run: |
