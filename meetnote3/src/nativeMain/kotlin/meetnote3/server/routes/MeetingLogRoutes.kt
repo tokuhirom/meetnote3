@@ -68,6 +68,9 @@ fun Route.meetingLogRoutes() {
                     summary = summary,
                     lrc = lrc,
                     path = document.basedir.toString(),
+                    mixedAvailable = document.mixedFilePath().let(FileSystem.SYSTEM::exists),
+                    micAvailable = document.micFilePath().let(FileSystem.SYSTEM::exists),
+                    screenAvailable = document.screenFilePath().let(FileSystem.SYSTEM::exists),
                 ),
             )
         } else {
@@ -77,23 +80,29 @@ fun Route.meetingLogRoutes() {
         }
     }
 
-    get("/api/meeting-logs/{name}/mixed") {
-        val meetingNote = call.parameters["name"]
-        val document = DocumentDirectory.find(meetingNote!!)
-        if (document != null) {
-            val path = document.mixedFilePath()
-            if (FileSystem.SYSTEM.exists(path)) {
-                FileSystem.SYSTEM.read(path) {
-                    call.respondBytes(readByteArray(), ContentType.Audio.MP4)
+    listOf(
+        "mixed" to { document: DocumentDirectory -> document.mixedFilePath() },
+        "mic" to { document: DocumentDirectory -> document.micFilePath() },
+        "screen" to { document: DocumentDirectory -> document.screenFilePath() },
+    ).forEach { (fileType, pathSelector) ->
+        get("/api/meeting-logs/{name}/$fileType") {
+            val meetingNote = call.parameters["name"]
+            val document = DocumentDirectory.find(meetingNote!!)
+            if (document != null) {
+                val path = pathSelector(document)
+                if (FileSystem.SYSTEM.exists(path)) {
+                    FileSystem.SYSTEM.read(path) {
+                        call.respondBytes(readByteArray(), ContentType.Audio.MP4)
+                    }
+                } else {
+                    call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
+                        "File not found."
+                    }
                 }
             } else {
                 call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
-                    "Mixed file not found."
+                    "Document not found."
                 }
-            }
-        } else {
-            call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
-                "Document not found."
             }
         }
     }

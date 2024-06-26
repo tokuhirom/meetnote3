@@ -103,9 +103,30 @@ val MeetingLogDetailComponent =
                     +name
                 }
 
+                p {
+                    +"Mixed recording"
+                }
                 audio {
                     controls = true
                     src = "http://localhost:9090/api/meeting-logs/$name/mixed"
+                }
+                if (meetingLogDetail?.micAvailable == true) {
+                    p {
+                        +"Microphone recording"
+                    }
+                    audio {
+                        controls = true
+                        src = "http://localhost:9090/api/meeting-logs/$name/mic"
+                    }
+                }
+                if (meetingLogDetail?.screenAvailable == true) {
+                    p {
+                        +"Screen recording"
+                    }
+                    audio {
+                        controls = true
+                        src = "http://localhost:9090/api/meeting-logs/$name/screen"
+                    }
                 }
 
                 p {
