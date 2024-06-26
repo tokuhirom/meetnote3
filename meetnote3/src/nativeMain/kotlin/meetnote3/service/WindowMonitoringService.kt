@@ -32,9 +32,15 @@ class WindowMonitoringService {
             while (true) {
                 val content = getSharableContent()
 
+                // When a window is displayed on a different screen, the **active** flag becomes false.
+                // Therefore, you should not filter using this flag. This is because, during meetings,
+                // there is a possibility that windows from applications like Zoom are being displayed
+                // on a separate screen.
+                // https://developer.apple.com/documentation/screencapturekit/scwindow/4110525-active?language=objc
+
                 val zoomWindows = content.windows
                     .mapNotNull { it as? SCWindow }
-                    .filter { it.active && it.title != null }
+                    .filter { it.title != null }
                     .filter { it.owningApplication?.bundleIdentifier == "us.zoom.xos" }
                     .filter { titles.contains(it.title) }
 
