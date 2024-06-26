@@ -8,10 +8,6 @@ plugins {
 
 kotlin {
     macosArm64("native") {
-        binaries {
-            executable {
-            }
-        }
     }
     js {
         browser()
