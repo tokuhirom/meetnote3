@@ -35,12 +35,12 @@ jobs:
           perl -pi -e 's/__VERSION__/${{ github.event.release.tag_name }}/g' capjoy/src/nativeMain/kotlin/capjoy/command/VersionCommand.kt
 
       - name: Build Kotlin/Native binary
-        run: ./gradlew :capjoy:${{ matrix.job.target }}Binaries
+        run: ./gradlew generateGpt2Kt generateFrontendJs :meetnote3:${{ matrix.job.target }}Binaries
 
       - name: Rename binary
         run: |
           mkdir build/
-          mv capjoy/build/bin/${{ matrix.job.target }}/releaseExecutable/capjoy.kexe build/${{ matrix.job.binary-name }}
+          mv meetnote3/build/bin/${{ matrix.job.target }}/releaseExecutable/meetnote3.kexe build/${{ matrix.job.binary-name }}
 
       - name: Archive binary
         run: |
@@ -76,7 +76,7 @@ jobs:
       - name: sha256sum
         run: |
           cd assets
-          sha256sum capjoy_* > checksums.txt
+          sha256sum meetnote3_* > checksums.txt
           cat checksums.txt
       - name: Create release
         uses: softprops/action-gh-release@v2

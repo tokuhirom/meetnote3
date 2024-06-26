@@ -1,11 +1,11 @@
 package meetnote3.ui
 
 import meetnote3.info
-import platform.AppKit.NSApplication
 import platform.AppKit.NSApplicationDelegateProtocol
 import platform.AppKit.NSMenu
 import platform.AppKit.NSMenuItem
 import platform.AppKit.NSStatusBar
+import platform.AppKit.NSStatusItem
 import platform.AppKit.NSVariableStatusItemLength
 import platform.Foundation.NSNotification
 import platform.Foundation.NSSelectorFromString
@@ -15,18 +15,19 @@ import platform.posix.system
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCAction
-import kotlinx.cinterop.autoreleasepool
 
-@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-fun startTrayIcon(serverPort: Int) {
-    autoreleasepool {
-        val app = NSApplication.sharedApplication()
+class TrayIconHandler {
+    // keep these properties as fields to avoid being garbage collected.
+    private lateinit var appDelegate: NSApplicationDelegateProtocol
+    private lateinit var statusItem: NSStatusItem
 
-        val appDelegate =
+    @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+    fun startTrayIcon(serverPort: Int): NSApplicationDelegateProtocol {
+        appDelegate =
             object : NSObject(), NSApplicationDelegateProtocol {
                 override fun applicationDidFinishLaunching(notification: NSNotification) {
                     info("Application did finish launching")
-                    val statusItem =
+                    statusItem =
                         NSStatusBar.systemStatusBar.statusItemWithLength(NSVariableStatusItemLength)
                     statusItem.button?.title = "Meetnote3"
                     val menu =
@@ -55,8 +56,6 @@ fun startTrayIcon(serverPort: Int) {
                     system("open http://localhost:$serverPort/")
                 }
             }
-
-        app.delegate = appDelegate
-        app.run()
+        return appDelegate
     }
 }
