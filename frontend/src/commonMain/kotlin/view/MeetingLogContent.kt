@@ -6,6 +6,7 @@ import meetnote3.model.MeetingNoteDetailResponse
 import mui.material.Grid
 import mui.system.responsive
 import react.FC
+import react.dom.html.ReactHTML.audio
 import react.dom.html.ReactHTML.h1
 import react.dom.html.ReactHTML.h2
 import react.dom.html.ReactHTML.hr
@@ -100,6 +101,11 @@ val MeetingLogDetailComponent =
                 }
                 h1 {
                     +name
+                }
+
+                audio {
+                    controls = true
+                    src = "http://localhost:9090/api/meeting-logs/$name/mixed"
                 }
 
                 p {

@@ -4,6 +4,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
@@ -69,6 +70,27 @@ fun Route.meetingLogRoutes() {
                     path = document.basedir.toString(),
                 ),
             )
+        } else {
+            call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
+                "Document not found."
+            }
+        }
+    }
+
+    get("/api/meeting-logs/{name}/mixed") {
+        val meetingNote = call.parameters["name"]
+        val document = DocumentDirectory.find(meetingNote!!)
+        if (document != null) {
+            val path = document.mixedFilePath()
+            if (FileSystem.SYSTEM.exists(path)) {
+                FileSystem.SYSTEM.read(path) {
+                    call.respondBytes(readByteArray(), ContentType.Audio.MP4)
+                }
+            } else {
+                call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
+                    "Mixed file not found."
+                }
+            }
         } else {
             call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
                 "Document not found."

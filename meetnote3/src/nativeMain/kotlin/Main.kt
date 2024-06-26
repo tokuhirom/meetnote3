@@ -35,7 +35,11 @@ fun main() {
 
     println("Writing log to $systemLogPath")
 
-    redirectOutput(systemLogPath.toString())
+    if (getenv("MEETNOTE3_NO_REDIRECT_LOG") != null) {
+        println("Debug mode is enabled.")
+    } else {
+        redirectOutput(systemLogPath.toString())
+    }
 
     initLogger()
 
