@@ -36,4 +36,14 @@ class ApiClient(
         val response = client.get("$baseUrl/api/meeting-logs/$name")
         return response.body()
     }
+
+    suspend fun getSystemLogs(): List<String> {
+        val response = client.get("$baseUrl/api/system-logs")
+        return response.body()
+    }
+
+    suspend fun getSystemLogDetail(name: String): String {
+        val response = client.get("$baseUrl/api/system-logs/$name")
+        return response.body()
+    }
 }

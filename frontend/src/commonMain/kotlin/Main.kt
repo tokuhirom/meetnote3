@@ -42,7 +42,12 @@ fun main() {
                             ),
                             RouteObject(
                                 path = "/system-logs",
-                                Component = SystemLogsContent,
+                                Component = SystemLogsListComponent,
+                                ErrorBoundary = ErrorPage,
+                            ),
+                            RouteObject(
+                                path = "/system-logs/:name",
+                                Component = SystemLogsDetailComponent,
                                 ErrorBoundary = ErrorPage,
                             ),
                             RouteObject(
