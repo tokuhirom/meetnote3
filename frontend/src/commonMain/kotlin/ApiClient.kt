@@ -6,6 +6,8 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.get
 import io.ktor.serialization.kotlinx.json.json
+import meetnote3.model.MeetingLogEntity
+import meetnote3.model.MeetingNoteDetailResponse
 import meetnote3.model.ProcessInfo
 
 class ApiClient(
@@ -23,5 +25,15 @@ class ApiClient(
     suspend fun getChildProcs(): List<ProcessInfo> {
         val response = client.get("$baseUrl/api/child-procs")
         return response.body<List<ProcessInfo>>()
+    }
+
+    suspend fun getMeetingLogs(): List<MeetingLogEntity> {
+        val response = client.get("$baseUrl/api/meeting-logs")
+        return response.body<List<MeetingLogEntity>>()
+    }
+
+    suspend fun getMeetingLogDetail(name: String): MeetingNoteDetailResponse {
+        val response = client.get("$baseUrl/api/meeting-logs/$name")
+        return response.body()
     }
 }

@@ -9,8 +9,8 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
-import meetnote3.server.response.MeetingLogEntity
-import meetnote3.server.response.MeetingNoteDetailResponse
+import meetnote3.model.MeetingLogEntity
+import meetnote3.model.MeetingNoteDetailResponse
 import meetnote3.transcript.getLrcLastTimestamp
 import okio.FileSystem
 

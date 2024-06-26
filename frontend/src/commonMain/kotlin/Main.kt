@@ -32,7 +32,12 @@ fun main() {
                         arrayOf(
                             RouteObject(
                                 path = "/meeting-logs",
-                                Component = MeetingLogContent,
+                                Component = MeetingLogListComponent,
+                                ErrorBoundary = ErrorPage,
+                            ),
+                            RouteObject(
+                                path = "/meeting-logs/:name",
+                                Component = MeetingLogDetailComponent,
                                 ErrorBoundary = ErrorPage,
                             ),
                             RouteObject(
