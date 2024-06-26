@@ -6,4 +6,5 @@ import kotlinx.serialization.Serializable
 data class MeetingNoteDetailResponse(
     val summary: String?,
     val lrc: String?,
+    val path: String,
 )

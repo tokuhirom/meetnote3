@@ -62,7 +62,13 @@ fun Route.meetingLogRoutes() {
                 info("Summary file not found: ${e.message}")
                 null
             }
-            call.respond(MeetingNoteDetailResponse(summary = summary, lrc = lrc))
+            call.respond(
+                MeetingNoteDetailResponse(
+                    summary = summary,
+                    lrc = lrc,
+                    path = document.basedir.toString(),
+                ),
+            )
         } else {
             call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
                 "Document not found."

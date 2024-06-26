@@ -8,6 +8,8 @@ import mui.system.responsive
 import react.FC
 import react.dom.html.ReactHTML.h1
 import react.dom.html.ReactHTML.h2
+import react.dom.html.ReactHTML.hr
+import react.dom.html.ReactHTML.p
 import react.dom.html.ReactHTML.pre
 import react.dom.html.ReactHTML.table
 import react.dom.html.ReactHTML.td
@@ -99,12 +101,20 @@ val MeetingLogDetailComponent =
                 h1 {
                     +name
                 }
+
+                p {
+                    +"Path: ${meetingLogDetail?.path}"
+                }
+
+                hr()
                 h2 {
                     +"Summary"
                 }
                 pre {
                     +meetingLogDetail?.summary
                 }
+
+                hr()
                 h2 {
                     +"Transcription"
                 }
