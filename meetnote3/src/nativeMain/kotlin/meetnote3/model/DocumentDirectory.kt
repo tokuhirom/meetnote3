@@ -53,12 +53,20 @@ data class DocumentDirectory(
             .parse(basedir.name)
             .format(shortNameFormatter)
 
+    fun createImageFileName(): Path {
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        return basedir.resolve("images").resolve(now.format(dateTimeFormatter) + ".png")
+    }
+
+    fun listImages(): List<Path> = FileSystem.SYSTEM.list(basedir.resolve("images")).toList()
+
     companion object {
         fun create(): DocumentDirectory {
             val basedir = baseDirectory()
             val dateTimeString = generateTimestamp()
             val dir = basedir.resolve(dateTimeString)
             FileSystem.SYSTEM.createDirectories(dir)
+            FileSystem.SYSTEM.createDirectories(dir.resolve("images"))
             return DocumentDirectory(dir)
         }
 

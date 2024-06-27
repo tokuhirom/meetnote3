@@ -10,4 +10,5 @@ data class MeetingNoteDetailResponse(
     val mixedAvailable: Boolean,
     val micAvailable: Boolean,
     val screenAvailable: Boolean,
+    val images: List<String>,
 )

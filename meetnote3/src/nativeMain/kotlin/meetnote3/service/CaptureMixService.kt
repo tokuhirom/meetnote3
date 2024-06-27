@@ -4,21 +4,26 @@ import meetnote3.getSharableContent
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
 import meetnote3.recorder.MicRecorder
+import meetnote3.recorder.ScreenImageRecorder
 import meetnote3.recorder.ScreenRecorder
 import meetnote3.recorder.mix
 import meetnote3.recorder.startAudioRecording
-import meetnote3.recorder.startScreenRecord
+import meetnote3.recorder.startScreenAudioRecord
+import meetnote3.recorder.startScreenImageRecord
 import okio.FileSystem
 import platform.AVFoundation.AVFileTypeMPEG4
+import platform.CoreMedia.CMTimeMake
 import platform.ScreenCaptureKit.SCContentFilter
 import platform.ScreenCaptureKit.SCDisplay
 import platform.ScreenCaptureKit.SCStreamConfiguration
+import platform.ScreenCaptureKit.SCWindow
 import platform.posix.getenv
 
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 
 class CaptureMixService {
+    @OptIn(ExperimentalForeignApi::class)
     @BetaInteropApi
     suspend fun start(documentDirectory: DocumentDirectory): CaptureState {
         val micFileName = documentDirectory.micFilePath().toString()
@@ -43,18 +48,46 @@ class CaptureMixService {
             capturesAudio = true
         }
 
-        val screenRecorder = startScreenRecord(
+        val screenAudioRecorder = startScreenAudioRecord(
             screenFileName.toString(),
             contentFilter,
-            enableVideo = false,
             enableAudio = true,
             captureConfiguration,
         )
 
+        val targetWindow = content.windows.firstOrNull {
+            if (it is SCWindow) {
+                it.title == "Zoom Meeting" || it.title == "Zoom Webinar"
+            } else {
+                false
+            }
+        }
+        val imageRecorder = if (targetWindow != null) {
+            info("Image is ready to record: $targetWindow")
+            val imageContentFilter = SCContentFilter(
+                targetWindow as SCWindow,
+            )
+            val imageCaptureConfiguration = SCStreamConfiguration().apply {
+                capturesAudio = false
+                showsCursor = false
+                // capture image in each 1 minutes
+                minimumFrameInterval = CMTimeMake(60, 1)
+            }
+            startScreenImageRecord(
+                imageContentFilter,
+                imageCaptureConfiguration,
+                documentDirectory,
+            )
+        } else {
+            info("Target window is missing. Skip image recording.")
+            null
+        }
+
         return CaptureState(
             documentDirectory = documentDirectory,
             micRecorder = micRecorder,
-            screenRecorder = screenRecorder,
+            screenAudioRecorder = screenAudioRecorder,
+            imageRecorder = imageRecorder,
         )
     }
 }
@@ -62,7 +95,8 @@ class CaptureMixService {
 data class CaptureState(
     val documentDirectory: DocumentDirectory,
     private val micRecorder: MicRecorder,
-    private val screenRecorder: ScreenRecorder,
+    private val screenAudioRecorder: ScreenRecorder,
+    private val imageRecorder: ScreenImageRecorder?,
 ) {
     @OptIn(ExperimentalForeignApi::class)
     suspend fun stop() {
@@ -72,7 +106,16 @@ data class CaptureState(
 
         micRecorder.stop()
 
-        screenRecorder.stop()
+        try {
+            screenAudioRecorder.stop()
+        } catch (e: Exception) {
+            info("Failed to stop screenAudioRecorder: $e")
+        }
+        try {
+            imageRecorder?.stop()
+        } catch (e: Exception) {
+            info("Failed to stop imageRecorder: $e")
+        }
         println("Writing finished")
 
         println("Starting mix...")

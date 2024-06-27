@@ -46,37 +46,65 @@ fun Route.meetingLogRoutes() {
     get("/api/meeting-logs/{name}") {
         val meetingNote = call.parameters["name"]
         val document = DocumentDirectory.find(meetingNote!!)
-        if (document != null) {
-            val summary = try {
-                FileSystem.SYSTEM.read(document.summaryFilePath()) {
-                    readUtf8()
-                }
-            } catch (e: Exception) {
-                info("Summary file not found: ${e.message}")
-                null
-            }
-            val lrc = try {
-                FileSystem.SYSTEM.read(document.lrcFilePath()) {
-                    readUtf8()
-                }
-            } catch (e: Exception) {
-                info("Summary file not found: ${e.message}")
-                null
-            }
-            call.respond(
-                MeetingNoteDetailResponse(
-                    summary = summary,
-                    lrc = lrc,
-                    path = document.basedir.toString(),
-                    mixedAvailable = document.mixedFilePath().let(FileSystem.SYSTEM::exists),
-                    micAvailable = document.micFilePath().let(FileSystem.SYSTEM::exists),
-                    screenAvailable = document.screenFilePath().let(FileSystem.SYSTEM::exists),
-                ),
-            )
-        } else {
+        if (document == null) {
             call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
                 "Document not found."
             }
+            return@get
+        }
+
+        val summary = try {
+            FileSystem.SYSTEM.read(document.summaryFilePath()) {
+                readUtf8()
+            }
+        } catch (e: Exception) {
+            info("Summary file not found: ${e.message}")
+            null
+        }
+        val lrc = try {
+            FileSystem.SYSTEM.read(document.lrcFilePath()) {
+                readUtf8()
+            }
+        } catch (e: Exception) {
+            info("Summary file not found: ${e.message}")
+            null
+        }
+        call.respond(
+            MeetingNoteDetailResponse(
+                summary = summary,
+                lrc = lrc,
+                path = document.basedir.toString(),
+                mixedAvailable = document.mixedFilePath().let(FileSystem.SYSTEM::exists),
+                micAvailable = document.micFilePath().let(FileSystem.SYSTEM::exists),
+                screenAvailable = document.screenFilePath().let(FileSystem.SYSTEM::exists),
+                images = document.listImages().map {
+                    it.name
+                },
+            ),
+        )
+    }
+
+    get("/api/meeting-logs/{name}/images/{image}") {
+        val meetingNote = call.parameters["name"]
+        val imageFileName = call.parameters["image"]
+        val document = DocumentDirectory.find(meetingNote!!)
+        if (document == null) {
+            call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
+                "Document not found."
+            }
+            return@get
+        }
+        val image = document.listImages().firstOrNull {
+            it.name == imageFileName
+        }
+        if (image == null) {
+            call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
+                "Image not found."
+            }
+            return@get
+        }
+        FileSystem.SYSTEM.read(image) {
+            call.respondBytes(readByteArray(), ContentType.Image.PNG)
         }
     }
 

@@ -36,7 +36,9 @@ class Server {
         // listen on a random port.
         // host is 127.0.0.1 to avoid listening on all interfaces.
         // user can access the server by visiting http://localhost:<port>/
-        val server = embeddedServer(CIO, port = port, host = "127.0.0.1") {
+        val server = embeddedServer(CIO, port = port, host = "127.0.0.1", configure = {
+            this.reuseAddress = true
+        }) {
             install(ContentNegotiation) {
                 json(
                     Json {
