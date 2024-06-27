@@ -80,6 +80,7 @@ tasks.register("generateFrontendJs") {
             "package meetnote3.static\n",
             "@Suppress(\"ktlint:standard:max-line-length\")",
             """const val FRONTEND_JS = "$encoded"""",
+            "",
         ).joinToString("\n")
 
         targetFile.parentFile.mkdirs()
