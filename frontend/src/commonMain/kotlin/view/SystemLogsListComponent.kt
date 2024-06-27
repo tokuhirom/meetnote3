@@ -47,6 +47,7 @@ val SystemLogsListComponent =
 
             SystemLogListSidebarComponent()
             Grid {
+                item = true
                 xs = 9
 
                 ReactHTML.h1 {
@@ -69,6 +70,7 @@ val SystemLogsDetailComponent =
 
             SystemLogListSidebarComponent()
             Grid {
+                item = true
                 xs = 9
 
                 val (systemLogDetail, setSystemLogDetail) = useState<String?>(

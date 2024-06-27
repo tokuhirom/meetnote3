@@ -13,8 +13,10 @@ import react.dom.html.ReactHTML.hr
 import react.dom.html.ReactHTML.p
 import react.dom.html.ReactHTML.pre
 import react.dom.html.ReactHTML.table
+import react.dom.html.ReactHTML.tbody
 import react.dom.html.ReactHTML.td
 import react.dom.html.ReactHTML.th
+import react.dom.html.ReactHTML.thead
 import react.dom.html.ReactHTML.tr
 import react.router.dom.NavLink
 import react.router.useParams
@@ -35,25 +37,29 @@ val MeetingLogListSidebarComponent = FC {
         xs = 3
 
         table {
-            tr {
-                th {
-                    +"Time"
-                }
-                th {
-                    +"Duration"
-                }
-            }
-        }
-        meetingLogs.forEach {
-            tr {
-                td {
-                    NavLink {
-                        +"${it.shortName}"
-                        to = "/meeting-logs/${it.name}"
+            thead {
+                tr {
+                    th {
+                        +"Time"
+                    }
+                    th {
+                        +"Duration"
                     }
                 }
-                th {
-                    +"${it.duration}"
+            }
+            tbody {
+                meetingLogs.forEach {
+                    tr {
+                        td {
+                            NavLink {
+                                +"${it.shortName}"
+                                to = "/meeting-logs/${it.name}"
+                            }
+                        }
+                        th {
+                            +"${it.duration}"
+                        }
+                    }
                 }
             }
         }
@@ -69,6 +75,7 @@ val MeetingLogListComponent =
 
             MeetingLogListSidebarComponent()
             Grid {
+                item = true
                 xs = 9
 
                 h1 {
@@ -90,6 +97,7 @@ val MeetingLogDetailComponent =
 
             MeetingLogListSidebarComponent()
             Grid {
+                item = true
                 xs = 9
 
                 val (meetingLogDetail, setMeetingLogDetail) = useState<MeetingNoteDetailResponse?>(
