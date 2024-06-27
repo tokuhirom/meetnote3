@@ -1,5 +1,6 @@
 package meetnote3.utils
 
+import meetnote3.model.ProcessInfo
 import platform.darwin.CTL_KERN
 import platform.darwin.KERN_PROC
 import platform.darwin.KERN_PROC_ALL

@@ -13,8 +13,10 @@ import platform.AVFoundation.AVFileTypeMPEG4
 import platform.ScreenCaptureKit.SCContentFilter
 import platform.ScreenCaptureKit.SCDisplay
 import platform.ScreenCaptureKit.SCStreamConfiguration
+import platform.posix.getenv
 
 import kotlinx.cinterop.BetaInteropApi
+import kotlinx.cinterop.ExperimentalForeignApi
 
 class CaptureMixService {
     @BetaInteropApi
@@ -34,7 +36,8 @@ class CaptureMixService {
 
         val contentFilter = SCContentFilter(
             display,
-            excludingWindows = emptyList<Any>(),
+            includingApplications = content.applications,
+            exceptingWindows = emptyList<Any>(),
         )
         val captureConfiguration = SCStreamConfiguration().apply {
             capturesAudio = true
@@ -61,6 +64,7 @@ data class CaptureState(
     private val micRecorder: MicRecorder,
     private val screenRecorder: ScreenRecorder,
 ) {
+    @OptIn(ExperimentalForeignApi::class)
     suspend fun stop() {
         val micFile = documentDirectory.micFilePath()
         val screenFile = documentDirectory.screenFilePath()
@@ -80,8 +84,13 @@ data class CaptureState(
 
         println("Created mix file: $outFileName")
 
-        FileSystem.SYSTEM.delete(micFile, false)
-        FileSystem.SYSTEM.delete(screenFile, false)
-        info("Deleted temp files($micFile, $screenFile)")
+        // これを外すと、なぜかスピーカー音声がうまくミックスされない気がする。
+        if (getenv("MEETNOTE3_KEEP_TEMP_FILES") == null) {
+            FileSystem.SYSTEM.delete(micFile, false)
+            FileSystem.SYSTEM.delete(screenFile, false)
+            info("Deleted temp files($micFile, $screenFile)")
+        } else {
+            info("Keep temp files due to MEETNOTE3_KEEP_TEMP_FILES($micFile, $screenFile)")
+        }
     }
 }

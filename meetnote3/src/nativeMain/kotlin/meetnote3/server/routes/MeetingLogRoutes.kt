@@ -4,13 +4,14 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
-import meetnote3.server.response.MeetingLogEntity
-import meetnote3.server.response.MeetingNoteDetailResponse
+import meetnote3.model.MeetingLogEntity
+import meetnote3.model.MeetingNoteDetailResponse
 import meetnote3.transcript.getLrcLastTimestamp
 import okio.FileSystem
 
@@ -62,10 +63,46 @@ fun Route.meetingLogRoutes() {
                 info("Summary file not found: ${e.message}")
                 null
             }
-            call.respond(MeetingNoteDetailResponse(summary = summary, lrc = lrc))
+            call.respond(
+                MeetingNoteDetailResponse(
+                    summary = summary,
+                    lrc = lrc,
+                    path = document.basedir.toString(),
+                    mixedAvailable = document.mixedFilePath().let(FileSystem.SYSTEM::exists),
+                    micAvailable = document.micFilePath().let(FileSystem.SYSTEM::exists),
+                    screenAvailable = document.screenFilePath().let(FileSystem.SYSTEM::exists),
+                ),
+            )
         } else {
             call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
                 "Document not found."
+            }
+        }
+    }
+
+    listOf(
+        "mixed" to { document: DocumentDirectory -> document.mixedFilePath() },
+        "mic" to { document: DocumentDirectory -> document.micFilePath() },
+        "screen" to { document: DocumentDirectory -> document.screenFilePath() },
+    ).forEach { (fileType, pathSelector) ->
+        get("/api/meeting-logs/{name}/$fileType") {
+            val meetingNote = call.parameters["name"]
+            val document = DocumentDirectory.find(meetingNote!!)
+            if (document != null) {
+                val path = pathSelector(document)
+                if (FileSystem.SYSTEM.exists(path)) {
+                    FileSystem.SYSTEM.read(path) {
+                        call.respondBytes(readByteArray(), ContentType.Audio.MP4)
+                    }
+                } else {
+                    call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
+                        "File not found."
+                    }
+                }
+            } else {
+                call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
+                    "Document not found."
+                }
             }
         }
     }

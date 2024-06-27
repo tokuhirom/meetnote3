@@ -2,36 +2,20 @@ package meetnote3.server.routes
 
 import io.ktor.http.ContentType
 import io.ktor.server.application.call
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
-import meetnote3.server.loadStaticResource
-import meetnote3.static.FRONTEND_CSS
+import io.ktor.util.decodeBase64String
 import meetnote3.static.FRONTEND_HTML
 import meetnote3.static.FRONTEND_JS
 
 fun Route.staticContentRoutes() {
     get("/") {
-        loadStaticResource(
-            call,
-            ContentType.Text.Html,
-            "MEETNOTE3_HTML_DEBUG",
-            FRONTEND_HTML,
-        )
+        call.respondText(FRONTEND_HTML, ContentType.Text.Html)
     }
     get("/frontend.js") {
-        loadStaticResource(
-            call,
-            ContentType.Text.JavaScript,
-            "MEETNOTE3_JS_DEBUG",
-            FRONTEND_JS,
-        )
-    }
-    get("/frontend.css") {
-        loadStaticResource(
-            call,
-            ContentType.Text.CSS,
-            "MEETNOTE3_CSS_DEBUG",
-            FRONTEND_CSS,
-        )
+        val p: String = FRONTEND_JS.decodeBase64String()
+        println(p)
+        call.respondText(p, ContentType.Text.JavaScript)
     }
 }

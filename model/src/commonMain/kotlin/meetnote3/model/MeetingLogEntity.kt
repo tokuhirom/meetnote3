@@ -1,4 +1,4 @@
-package meetnote3.server.response
+package meetnote3.model
 
 import kotlinx.serialization.Serializable
 

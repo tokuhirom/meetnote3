@@ -11,7 +11,6 @@ fun getLrcLastTimestamp(filePath: Path): String {
     FileSystem.SYSTEM.read(filePath) {
         val lines = readUtf8().split("\n")
         val lastLine = lines.dropLast(1).last()
-        println("XXXXXXXX $filePath $lastLine")
         return lastLine.substring(1, 9)
     }
 }

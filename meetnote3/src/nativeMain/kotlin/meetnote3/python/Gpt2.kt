@@ -29,16 +29,21 @@ def main(model_name, input_file, output_file):
     # Download or load the model and tokenizer
     model, tokenizer = download_model_and_tokenizer(model_name)
 
-    # Read the input file
-    with open(input_file, "r", encoding="utf-8") as file:
-        text = file.read()
+    try:
+        # Read the input file
+        with open(input_file, "r", encoding="utf-8") as file:
+            text = file.read()
 
-    # Summarize the text
-    summary = summarize_text(model, tokenizer, text)
+        # Summarize the text
+        summary = summarize_text(model, tokenizer, text)
 
-    # Write the summary to the output file
-    with open(output_file, "w", encoding="utf-8") as file:
-        file.write(summary)
+        # Write the summary to the output file
+        with open(output_file, "w", encoding="utf-8") as file:
+            file.write(summary)
+    except UnicodeDecodeError as e:
+        # Write the error message to the output file
+        with open(output_file, "w", encoding="utf-8") as file:
+            file.write(f"Failed to read the file due to encoding error: {e}")
 
 
 if __name__ == "__main__":
