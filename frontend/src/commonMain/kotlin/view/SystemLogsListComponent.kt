@@ -51,7 +51,7 @@ val SystemLogsListComponent =
                 xs = 9
 
                 ReactHTML.h1 {
-                    +"Meeting logs"
+                    +"System logs"
                 }
             }
         }
