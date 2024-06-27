@@ -12,17 +12,13 @@ import platform.AVFoundation.AVFileTypeAppleM4A
 import platform.AVFoundation.AVMediaTypeAudio
 import platform.AppKit.NSBitmapImageFileType
 import platform.AppKit.NSBitmapImageRep
-import platform.AppKit.NSCIImageRep
 import platform.AppKit.NSImage
 import platform.AppKit.representationUsingType
 import platform.CoreAudioTypes.kAudioFormatMPEG4AAC
-import platform.CoreImage.CIImage
 import platform.CoreMedia.CMClockGetHostTimeClock
 import platform.CoreMedia.CMClockGetTime
-import platform.CoreMedia.CMSampleBufferGetImageBuffer
 import platform.CoreMedia.CMSampleBufferIsValid
 import platform.CoreMedia.CMSampleBufferRef
-import platform.CoreVideo.CVImageBufferRef
 import platform.Foundation.NSURL
 import platform.Foundation.writeToFile
 import platform.ScreenCaptureKit.SCContentFilter
@@ -109,45 +105,21 @@ suspend fun startScreenAudioRecord(
                 return
             }
 
-            when (ofType) {
-                SCStreamOutputType.SCStreamOutputTypeAudio -> {
-                    if (audioWriterInput?.readyForMoreMediaData == true) {
-                        if (!audioWriterInput.appendSampleBuffer(didOutputSampleBuffer!!)) {
-                            println("Cannot write audio")
-                        }
-                    } else {
-                        println("Audio writer input not ready for more media data")
-                    }
+            if (audioWriterInput?.readyForMoreMediaData == true) {
+                if (!audioWriterInput.appendSampleBuffer(didOutputSampleBuffer!!)) {
+                    println("Cannot write audio")
+                } else {
+                    println("Audio written")
                 }
-
-                SCStreamOutputType.SCStreamOutputTypeScreen -> {
-                    val imageBuffer: CVImageBufferRef = CMSampleBufferGetImageBuffer(didOutputSampleBuffer)
-                        ?: return
-                    val ciImage = CIImage(cVImageBuffer = imageBuffer)
-                    val rep = NSCIImageRep(ciImage)
-                    val nsImage = NSImage(size = rep.size)
-                    nsImage.addRepresentation(rep)
-                    saveImageToFile(
-                        nsImage,
-                        "screenshot.png",
-                        NSBitmapImageFileType.NSBitmapImageFileTypePNG,
-                    )
-                }
+            } else {
+                println("Audio writer input not ready for more media data")
             }
         }
     }
 
-    if (enableAudio) {
-        stream.addStreamOutput(
-            streamOutput,
-            SCStreamOutputType.SCStreamOutputTypeAudio,
-            sampleHandlerQueue = null,
-            error = null,
-        )
-    }
     stream.addStreamOutput(
         streamOutput,
-        SCStreamOutputType.SCStreamOutputTypeScreen,
+        SCStreamOutputType.SCStreamOutputTypeAudio,
         sampleHandlerQueue = null,
         error = null,
     )

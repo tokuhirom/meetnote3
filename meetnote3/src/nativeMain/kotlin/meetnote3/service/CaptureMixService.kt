@@ -38,11 +38,17 @@ class CaptureMixService {
         val display = (content.displays.firstOrNull() ?: error("No display found")) as SCDisplay
 
         println("Display found: $display")
+        val targetWindow = content.windows.firstOrNull {
+            if (it is SCWindow) {
+                it.title == "Zoom Meeting" || it.title == "Zoom Webinar"
+            } else {
+                false
+            }
+        }
 
         val contentFilter = SCContentFilter(
             display,
-            includingApplications = content.applications,
-            exceptingWindows = emptyList<Any>(),
+            excludingWindows = emptyList<Any>(),
         )
         val captureConfiguration = SCStreamConfiguration().apply {
             capturesAudio = true
@@ -55,13 +61,6 @@ class CaptureMixService {
             captureConfiguration,
         )
 
-        val targetWindow = content.windows.firstOrNull {
-            if (it is SCWindow) {
-                it.title == "Zoom Meeting" || it.title == "Zoom Webinar"
-            } else {
-                false
-            }
-        }
         val imageRecorder = if (targetWindow != null) {
             info("Image is ready to record: $targetWindow")
             val imageContentFilter = SCContentFilter(
