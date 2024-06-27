@@ -1,15 +1,18 @@
 package view
 
 import ApiClient
+import emotion.react.css
 import meetnote3.model.MeetingLogEntity
 import meetnote3.model.MeetingNoteDetailResponse
 import mui.material.Grid
 import mui.system.responsive
 import react.FC
 import react.dom.html.ReactHTML.audio
+import react.dom.html.ReactHTML.div
 import react.dom.html.ReactHTML.h1
 import react.dom.html.ReactHTML.h2
 import react.dom.html.ReactHTML.hr
+import react.dom.html.ReactHTML.img
 import react.dom.html.ReactHTML.p
 import react.dom.html.ReactHTML.pre
 import react.dom.html.ReactHTML.table
@@ -22,6 +25,7 @@ import react.router.dom.NavLink
 import react.router.useParams
 import react.use.useAsyncEffect
 import react.useState
+import web.cssom.px
 import xs
 
 val MeetingLogListSidebarComponent = FC {
@@ -109,6 +113,17 @@ val MeetingLogDetailComponent =
                 }
                 h1 {
                     +name
+                }
+
+                div {
+                    meetingLogDetail?.images?.forEach {
+                        img {
+                            css {
+                                maxWidth = 300.px
+                            }
+                            src = "http://localhost:9090/api/meeting-logs/$name/images/$it"
+                        }
+                    }
                 }
 
                 p {

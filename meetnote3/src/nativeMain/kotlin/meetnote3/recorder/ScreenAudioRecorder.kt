@@ -9,23 +9,18 @@ import platform.AVFAudio.AVSampleRateKey
 import platform.AVFoundation.AVAssetWriter
 import platform.AVFoundation.AVAssetWriterInput
 import platform.AVFoundation.AVFileTypeAppleM4A
-import platform.AVFoundation.AVFileTypeQuickTimeMovie
 import platform.AVFoundation.AVMediaTypeAudio
-import platform.AVFoundation.AVMediaTypeVideo
-import platform.AVFoundation.AVVideoAverageBitRateKey
-import platform.AVFoundation.AVVideoCodecKey
-import platform.AVFoundation.AVVideoCodecTypeH264
-import platform.AVFoundation.AVVideoCompressionPropertiesKey
-import platform.AVFoundation.AVVideoHeightKey
-import platform.AVFoundation.AVVideoProfileLevelH264HighAutoLevel
-import platform.AVFoundation.AVVideoProfileLevelKey
-import platform.AVFoundation.AVVideoWidthKey
+import platform.AppKit.NSBitmapImageFileType
+import platform.AppKit.NSBitmapImageRep
+import platform.AppKit.NSImage
+import platform.AppKit.representationUsingType
 import platform.CoreAudioTypes.kAudioFormatMPEG4AAC
 import platform.CoreMedia.CMClockGetHostTimeClock
 import platform.CoreMedia.CMClockGetTime
 import platform.CoreMedia.CMSampleBufferIsValid
 import platform.CoreMedia.CMSampleBufferRef
 import platform.Foundation.NSURL
+import platform.Foundation.writeToFile
 import platform.ScreenCaptureKit.SCContentFilter
 import platform.ScreenCaptureKit.SCStream
 import platform.ScreenCaptureKit.SCStreamConfiguration
@@ -40,15 +35,11 @@ import kotlin.coroutines.suspendCoroutine
 import kotlinx.cinterop.ExperimentalForeignApi
 
 @OptIn(ExperimentalForeignApi::class)
-fun createAssetWriter(
-    fileName: String,
-    isVideo: Boolean,
-): AVAssetWriter {
+fun createAssetWriter(fileName: String): AVAssetWriter {
     val outputFileURL = NSURL.fileURLWithPath(fileName)
     println("Output file: ${outputFileURL.path}")
 
-    val fileType = if (isVideo) AVFileTypeQuickTimeMovie else AVFileTypeAppleM4A
-    val assetWriter = AVAssetWriter(outputFileURL, fileType = fileType, error = null)
+    val assetWriter = AVAssetWriter(outputFileURL, fileType = AVFileTypeAppleM4A, error = null)
 
     return assetWriter
 }
@@ -69,34 +60,15 @@ fun createAudioWriterInput(): AVAssetWriterInput {
 }
 
 @OptIn(ExperimentalForeignApi::class)
-fun createVideoWriterInput(): AVAssetWriterInput {
-    val videoSettings = mapOf<Any?, Any?>(
-        AVVideoCodecKey to AVVideoCodecTypeH264,
-        AVVideoWidthKey to 1920,
-        AVVideoHeightKey to 1080,
-        AVVideoCompressionPropertiesKey to mapOf(
-            AVVideoAverageBitRateKey to 6000000,
-            AVVideoProfileLevelKey to AVVideoProfileLevelH264HighAutoLevel,
-        ),
-    )
-    return AVAssetWriterInput(
-        mediaType = AVMediaTypeVideo,
-        outputSettings = videoSettings,
-        sourceFormatHint = null,
-    )
-}
-
-@OptIn(ExperimentalForeignApi::class)
-suspend fun startScreenRecord(
+suspend fun startScreenAudioRecord(
     fileName: String,
     contentFilter: SCContentFilter,
-    enableVideo: Boolean,
     enableAudio: Boolean,
     scStreamConfiguration: SCStreamConfiguration,
 ): ScreenRecorder {
     val stream = SCStream(contentFilter, scStreamConfiguration, null)
 
-    val assetWriter = createAssetWriter(fileName, enableVideo)
+    val assetWriter = createAssetWriter(fileName)
 
     val audioWriterInput = if (enableAudio) {
         println("Adding audio input")
@@ -105,15 +77,6 @@ suspend fun startScreenRecord(
         audioWriterInput
     } else {
         println("Not adding audio input")
-        null
-    }
-
-    val videoWriterInput = if (enableVideo) {
-        val videoInput = createVideoWriterInput()
-        println("Adding video input")
-        assetWriter.addInput(videoInput)
-        videoInput
-    } else {
         null
     }
 
@@ -142,50 +105,43 @@ suspend fun startScreenRecord(
                 return
             }
 
-            when (ofType) {
-                SCStreamOutputType.SCStreamOutputTypeAudio -> {
-                    if (audioWriterInput?.readyForMoreMediaData == true) {
-                        if (!audioWriterInput.appendSampleBuffer(didOutputSampleBuffer!!)) {
-                            println("Cannot write audio")
-                        }
-                    } else {
-                        println("Audio writer input not ready for more media data")
-                    }
+            if (audioWriterInput?.readyForMoreMediaData == true) {
+                if (!audioWriterInput.appendSampleBuffer(didOutputSampleBuffer!!)) {
+                    println("Cannot write audio")
+                } else {
+                    println("Audio written")
                 }
-
-                SCStreamOutputType.SCStreamOutputTypeScreen -> {
-                    if (videoWriterInput?.readyForMoreMediaData == true) {
-                        if (!videoWriterInput.appendSampleBuffer(didOutputSampleBuffer!!)) {
-                            println("Cannot write video")
-                        }
-                    } else {
-                        println("Video writer input not ready for more media data")
-                    }
-                }
+            } else {
+                println("Audio writer input not ready for more media data")
             }
         }
     }
 
-    if (enableAudio) {
-        stream.addStreamOutput(
-            streamOutput,
-            SCStreamOutputType.SCStreamOutputTypeAudio,
-            sampleHandlerQueue = null,
-            error = null,
-        )
-    }
-    if (enableVideo) {
-        stream.addStreamOutput(
-            streamOutput,
-            SCStreamOutputType.SCStreamOutputTypeScreen,
-            sampleHandlerQueue = null,
-            error = null,
-        )
-    }
+    stream.addStreamOutput(
+        streamOutput,
+        SCStreamOutputType.SCStreamOutputTypeAudio,
+        sampleHandlerQueue = null,
+        error = null,
+    )
 
     stream.startCapture()
 
-    return ScreenRecorder(stream, audioWriterInput, videoWriterInput, assetWriter)
+    return ScreenRecorder(stream, audioWriterInput, assetWriter)
+}
+
+private fun saveImageToFile(
+    image: NSImage,
+    filePath: String,
+    fileFormat: NSBitmapImageFileType,
+): Boolean {
+    val imageData = image.TIFFRepresentation ?: return false
+    val bitmapImageRep = NSBitmapImageRep(data = imageData) ?: return false
+    val pngData = bitmapImageRep.representationUsingType(
+        fileFormat,
+        properties = emptyMap<Any?, Any>(),
+    )
+
+    return pngData?.writeToFile(filePath, atomically = true) ?: false
 }
 
 suspend fun SCStream.startCapture() =
@@ -202,7 +158,6 @@ suspend fun SCStream.startCapture() =
 data class ScreenRecorder(
     val stream: SCStream,
     val audioWriterInput: AVAssetWriterInput?,
-    val videoWriterInput: AVAssetWriterInput?,
     val assetWriter: AVAssetWriter,
 ) {
     @OptIn(ExperimentalForeignApi::class)
@@ -216,7 +171,6 @@ data class ScreenRecorder(
         assetWriter.endSessionAtSourceTime(now)
 
         audioWriterInput?.markAsFinished()
-        videoWriterInput?.markAsFinished()
         assetWriter.finishWritingAsync()
     }
 }

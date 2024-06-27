@@ -1,5 +1,6 @@
 package meetnote3.service
 
+import meetnote3.debug
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
 import meetnote3.recorder.mix
@@ -17,7 +18,7 @@ class RecoveringService {
         info("Recovering: ${dirs.size} directories.")
         dirs.forEach {
             try {
-                info("Recovering: $it")
+                debug("Recovering: $it")
                 recoverDocument(it)
             } catch (e: Exception) {
                 info("Failed to recover: $it")
