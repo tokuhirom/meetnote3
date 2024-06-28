@@ -13,6 +13,7 @@ import meetnote3.server.routes.meetingLogRoutes
 import meetnote3.server.routes.procsRoutes
 import meetnote3.server.routes.staticContentRoutes
 import meetnote3.server.routes.systemLogRoutes
+import meetnote3.service.SummarizeService
 import platform.posix.getenv
 
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -29,7 +30,9 @@ val RequestLoggingPlugin = createApplicationPlugin(name = "RequestLoggingPlugin"
     }
 }
 
-class Server {
+class Server(
+    private val summarizeService: SummarizeService,
+) {
     // return the port number.
     @OptIn(ExperimentalForeignApi::class)
     fun startServer(port: Int): Int {
@@ -58,7 +61,7 @@ class Server {
             install(RequestLoggingPlugin)
             install(Routing) {
                 this.staticContentRoutes()
-                this.meetingLogRoutes()
+                this.meetingLogRoutes(summarizeService)
                 this.systemLogRoutes()
                 this.procsRoutes()
             }

@@ -6,10 +6,11 @@ import meetnote3.model.DocumentDirectory
 import meetnote3.recorder.mix
 import okio.FileSystem
 
-class RecoveringService {
+class RecoveringService(
+    private val summarizeService: SummarizeService,
+) {
     private val fs = FileSystem.SYSTEM
     private val whisperTranscriptService = WhisperTranscriptService()
-    private val summarizeService = SummarizeService()
 
     suspend fun recover() {
         println("RecoveringService.recover")

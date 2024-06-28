@@ -8,14 +8,16 @@ import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
 import meetnote3.model.MeetingLogEntity
 import meetnote3.model.MeetingNoteDetailResponse
+import meetnote3.service.SummarizeService
 import meetnote3.transcript.getLrcLastTimestamp
 import okio.FileSystem
 
-fun Route.meetingLogRoutes() {
+fun Route.meetingLogRoutes(summarizeService: SummarizeService) {
     // meeting log list.
     get("/api/meeting-logs") {
         val documents = DocumentDirectory
@@ -82,6 +84,20 @@ fun Route.meetingLogRoutes() {
                 },
             ),
         )
+    }
+
+    post("/api/meeting-logs/{name}/summarize") {
+        val meetingNote = call.parameters["name"]
+        val document = DocumentDirectory.find(meetingNote!!)
+        if (document == null) {
+            call.respondText(ContentType.Text.Plain, HttpStatusCode.NotFound) {
+                "Document not found."
+            }
+            return@post
+        }
+
+        summarizeService.summarize(document)
+        call.respondText("OK", ContentType.Image.PNG)
     }
 
     get("/api/meeting-logs/{name}/images/{image}") {

@@ -3,6 +3,7 @@ import meetnote3.initLogger
 import meetnote3.server.Server
 import meetnote3.service.EnvironmentDiagnosticService
 import meetnote3.service.RecoveringService
+import meetnote3.service.SummarizeService
 import meetnote3.service.WholeWorkersFactoryService
 import meetnote3.ui.TrayIconHandler
 import meetnote3.utils.createNewSystemLogPath
@@ -27,8 +28,9 @@ fun getPort(): Int = getenv("MEETNOTE3_PORT")?.toKString()?.toInt() ?: 0
 @BetaInteropApi
 fun main() {
     getenv("MEETNOTE3_PORT")
+    val summarizeService = SummarizeService()
     val tryPort = getPort()
-    val port = Server().startServer(tryPort)
+    val port = Server(summarizeService).startServer(tryPort)
     info("Server started at http://localhost:$port/")
 
     val systemLogPath = createNewSystemLogPath()
@@ -48,10 +50,10 @@ fun main() {
     EnvironmentDiagnosticService().show()
 
     CoroutineScope(Dispatchers.Default).launch {
-        RecoveringService().recover()
+        RecoveringService(summarizeService).recover()
     }
 
-    WholeWorkersFactoryService().runAll()
+    WholeWorkersFactoryService(summarizeService).runAll()
 
     CoroutineScope(Dispatchers.Default).launch {
         println("Showing child processes...")

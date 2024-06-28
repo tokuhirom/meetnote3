@@ -6,7 +6,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class WholeWorkersFactoryService {
+class WholeWorkersFactoryService(
+    private val summarizeService: SummarizeService,
+) {
     @BetaInteropApi
     fun runAll() {
         println("Window monitoring service started.")
@@ -37,7 +39,6 @@ class WholeWorkersFactoryService {
         }
 
         // Summarizing phase
-        val summarizeService = SummarizeService()
         CoroutineScope(Dispatchers.Default).launch {
             whisperTranscriptService.readyForSummarizeFlow.collect { documentDirectory ->
                 println("Summarize ready: ${documentDirectory.lrcFilePath()}")
