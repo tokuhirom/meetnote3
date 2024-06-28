@@ -3,6 +3,7 @@ package meetnote3.model
 import meetnote3.info
 import meetnote3.model.DocumentDirectory.Companion.dateTimeFormatter
 import meetnote3.utils.getHomeDirectory
+import okio.FileNotFoundException
 import okio.FileSystem
 import okio.Path
 
@@ -58,7 +59,13 @@ data class DocumentDirectory(
         return basedir.resolve("images").resolve(now.format(dateTimeFormatter) + ".png")
     }
 
-    fun listImages(): List<Path> = FileSystem.SYSTEM.list(basedir.resolve("images")).toList()
+    fun listImages(): List<Path> =
+        try {
+            FileSystem.SYSTEM.list(basedir.resolve("images")).toList()
+        } catch (e: FileNotFoundException) {
+            info("Failed to create images directory: $e")
+            emptyList()
+        }
 
     companion object {
         fun create(): DocumentDirectory {

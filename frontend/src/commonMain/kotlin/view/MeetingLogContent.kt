@@ -4,6 +4,9 @@ import ApiClient
 import emotion.react.css
 import meetnote3.model.MeetingLogEntity
 import meetnote3.model.MeetingNoteDetailResponse
+import mui.material.Button
+import mui.material.ButtonColor
+import mui.material.ButtonVariant
 import mui.material.Grid
 import mui.system.responsive
 import react.FC
@@ -111,6 +114,14 @@ val MeetingLogDetailComponent =
                     val meetingLogDetail = ApiClient().getMeetingLogDetail(name)
                     setMeetingLogDetail(meetingLogDetail)
                 }
+                val (startRequest, setStartRequest) = useState<Boolean>(false)
+                useAsyncEffect(name, startRequest) {
+                    if (startRequest) {
+                        ApiClient().summarize(name)
+                        setStartRequest(false)
+                    }
+                }
+
                 h1 {
                     +name
                 }
@@ -149,6 +160,23 @@ val MeetingLogDetailComponent =
                     audio {
                         controls = true
                         src = "http://localhost:9090/api/meeting-logs/$name/screen"
+                    }
+                }
+
+                div {
+                    Button {
+                        if (startRequest) {
+                            +"Summaring..."
+                            disabled = true
+                        } else {
+                            +"Summarize again"
+                        }
+                        color = ButtonColor.primary
+                        variant = ButtonVariant.contained
+                        onClick = {
+                            println("Clicked!!!")
+                            setStartRequest(true)
+                        }
                     }
                 }
 

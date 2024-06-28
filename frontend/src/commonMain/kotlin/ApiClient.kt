@@ -5,6 +5,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.ktor.serialization.kotlinx.json.json
 import meetnote3.model.MeetingLogEntity
 import meetnote3.model.MeetingNoteDetailResponse
@@ -44,6 +45,11 @@ class ApiClient(
 
     suspend fun getSystemLogDetail(name: String): String {
         val response = client.get("$baseUrl/api/system-logs/$name")
+        return response.body()
+    }
+
+    suspend fun summarize(name: String) {
+        val response = client.post("$baseUrl/api/meeting-logs/$name/summarize")
         return response.body()
     }
 }
