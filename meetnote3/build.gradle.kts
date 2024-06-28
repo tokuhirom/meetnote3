@@ -1,5 +1,4 @@
 import java.util.Base64
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("multiplatform") version "2.0.0"
@@ -40,13 +39,18 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
             }
         }
+
+        val nativeMain by getting {
+            kotlin.srcDir("src/nativeMain/kotlin")
+            kotlin.srcDir("build/generated/kotlin") // Add this line
+        }
     }
 }
 
 tasks.register("generateGpt2Kt") {
     doLast {
         val sourceFile = file(rootDir.resolve("scripts/summarize.py"))
-        val targetFile = file("src/nativeMain/kotlin/meetnote3/python/Gpt2.kt")
+        val targetFile = projectDir.resolve("build/generated/kotlin/meetnote3/python/Gpt2.kt")
         val content = sourceFile.readText()
 
         val kotlinFileContent = listOf(
@@ -67,7 +71,7 @@ tasks.register("generateFrontendJs") {
 
     doLast {
         val sourceFile = file(rootDir.resolve("frontend/build/dist/js/productionExecutable/frontend.js"))
-        val targetFile = file("src/nativeMain/kotlin/meetnote3/static/FrontendJs.kt")
+        val targetFile = projectDir.resolve("build/generated/kotlin/meetnote3/static/FrontendJs.kt")
         val content = sourceFile
             .readText()
             .replace("http://localhost:9090", "")
@@ -91,7 +95,7 @@ tasks.register("generateFrontendJs") {
 tasks.register("generateFrontendHtml") {
     doLast {
         val sourceFile = file(rootDir.resolve("frontend/src/commonMain/resources/index.html"))
-        val targetFile = file("src/nativeMain/kotlin/meetnote3/static/FrontendHtml.kt")
+        val targetFile = projectDir.resolve("build/generated/kotlin/meetnote3/static/FrontendHtml.kt")
         val content = sourceFile.readText()
 
         val kotlinFileContent = listOf(
@@ -107,7 +111,7 @@ tasks.register("generateFrontendHtml") {
     }
 }
 
-tasks.withType<KotlinCompile> {
+tasks.named("compileKotlinNative") {
     dependsOn("generateGpt2Kt")
     dependsOn("generateFrontendJs")
     dependsOn("generateFrontendHtml")
