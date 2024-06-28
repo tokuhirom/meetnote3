@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, mock_open, MagicMock
 
-from summarize import download_model_and_tokenizer, summarize_text, main
+from summarize import download_model_and_tokenizer, summarize_text, main, convert_lrc_to_markdown
 
 
 class TestSummarize(unittest.TestCase):
@@ -32,6 +32,24 @@ class TestSummarize(unittest.TestCase):
         text = "Some long text"
         summary = summarize_text(mock_model, mock_tokenizer, text)
         self.assertEqual(summary, "summary text")
+
+    def test_convert_lrc_to_markdown(self):
+        lrc_string = """[00:00.00] Header
+[00:12.34] Line one
+[00:15.67] Line one
+[00:18.90] Line two
+[00:22.22] Line three
+[00:25.55] Line three
+[00:28.88] Line three
+[00:32.10] Line four"""
+
+        expected_output = """- Line one
+- Line two
+- Line three
+- Line four"""
+
+        result = convert_lrc_to_markdown(lrc_string)
+        self.assertEqual(result, expected_output)
 
     @patch("builtins.open", new_callable=mock_open, read_data="Some input text")
     @patch("summarize.summarize_text", return_value="summary text")
