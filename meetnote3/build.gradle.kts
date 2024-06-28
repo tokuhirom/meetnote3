@@ -45,7 +45,7 @@ kotlin {
 
 tasks.register("generateGpt2Kt") {
     doLast {
-        val sourceFile = file(rootDir.resolve("scripts/summarize-gpt2.py"))
+        val sourceFile = file(rootDir.resolve("scripts/summarize.py"))
         val targetFile = file("src/nativeMain/kotlin/meetnote3/python/Gpt2.kt")
         val content = sourceFile.readText()
 
