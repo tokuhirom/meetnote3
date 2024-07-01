@@ -35,9 +35,13 @@ class RecordingService(
                 is RecordingState.Recording -> {
                     info("Recording")
 
-                    val documentDirectory = DocumentDirectory.create()
+                    try {
+                        val documentDirectory = DocumentDirectory.create()
 
-                    recorder = captureMixService.start(documentDirectory)
+                        recorder = captureMixService.start(documentDirectory)
+                    } catch (e: Exception) {
+                        error("Failed to start recording: $e")
+                    }
                 }
             }
         }
