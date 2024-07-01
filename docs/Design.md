@@ -9,6 +9,15 @@ ScreenCaptureKit の API を利用し、Zoom の Window が存在している場
 録音された音声を元に、whisper.cpp を用いて文字起こしを行う。
 gpt2 を用いて、要約処理を行う。
 
+## System architecture
+
+Kotlin Native を採用する。
+
+MeetNote2 では rust+tauri+svelte という構成だったが、Rust を採用すると RustRover を起動しなければならないのがネックだった。
+ScreenCaptureKit などの Mac の API を簡単に利用出来るうえ、IntelliJ IDEA で開発が可能になり、Kotlin Native
+での開発となると
+通常業務からのコンテキストスイッチが容易であることから kotlin native での開発に切り替えることとした。
+
 ## 録音処理の詳細
 
 録音処理においては、ScreenCaptureKit の API を利用して、ディスプレイから出力される音声とマイクからの音声の両方を同時に録音する。
@@ -116,3 +125,37 @@ whisper.cpp の出力結果は、lrc である。
 
 録音の開始や終了はすべて自動で行われるため、UI 上では操作は行われない。
 UI は単なるビューワーである。
+
+UI は HTML で実装され、web browser で表示される。
+ktor でサーバーは実装されており、UI は Kotlin/JS で実装されている。
+
+## UI の今後の展開
+
+今後、kotlin native で Mac のネイティブコンポーネントを利用して再実装する予定となっている。
+
+この UI では、3種類の情報が表示可能となる。
+
+### Meeting Logs Window
+
+ミーティングログを表示する機能。これが UI のコア機能である。
+
+System Tray Icon にメニューが追加されており、"Open Meeting Logs" というメニューをクリックすると表示される。
+
+Meeting Logs Window は、ログの内容を表示するためのウィンドウである。
+過去のログがウィンドウの左側1/3 ぐらいの領域に一覧で表示される。ファイルの格納されているディレクトリ名をパースして、
+録音した日時が表示されている。この領域をタップ/クリックすると右側2/3の領域にログの詳細情報が表示される。
+
+ログの詳細情報表示領域には、音声ファイルの再生ボタン、要約結果、文字起こし結果が表示される。
+
+### System Logs Window
+
+アプリケーションの実行ログを表示することが可能となる。
+アプリケーションのログの最近の5回分を表示可能。
+
+Dropdown menu で直近5回分のログの名称が選択可能となっている。
+Window は Tray Icon にメニューが追加されており、"Open System Logs" というメニューをクリックすると表示される。
+
+現在実行中のログを表示することも可能となっている。
+
+Dropdown menu の下には text を表示する枠があり、そこにログの内容が表示される。
+

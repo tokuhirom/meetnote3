@@ -96,7 +96,7 @@ class WhisperTranscriptService(
             waveFilePath.toString(),
         ).start(captureStdout = false, captureStderr = false)
         val processExitStatus = process.waitUntil(whisperCppTimeout)
-        if (!(processExitStatus.exited() && processExitStatus.termsig() == 0)) {
+        if (!(processExitStatus.exited() && processExitStatus.exitstatus() == 0)) {
             throw Exception(
                 "whisper-cpp failed with exit code $processExitStatus." +
                     " Stderr: ${process.stderr?.slurpString()}",
