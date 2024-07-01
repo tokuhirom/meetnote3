@@ -121,14 +121,14 @@ class Process(
     val stderr: FileDescriptor?,
 ) {
     @OptIn(ExperimentalForeignApi::class)
-    fun wait(): Int {
+    fun wait(): ProcessExitStatus {
         memScoped {
             val status = alloc<IntVar>()
             if (waitpid(pid, status.ptr, 0) == -1) {
                 perror("waitpid")
                 throw WaitTimeoutException("Failed to wait for the process")
             }
-            return processExitStatus(status.value)
+            return ProcessExitStatus(status.value)
         }
     }
 
@@ -136,10 +136,11 @@ class Process(
     suspend fun waitUntil(
         duration: Duration,
         sleepInterval: Duration = Duration.parse("1s"),
-    ): Int {
+    ): ProcessExitStatus {
         memScoped {
             val startTime = TimeSource.Monotonic.markNow()
             val status = alloc<IntVar>()
+            var timeout = false
             while (true) {
                 val waitPidResult = waitpid(pid, status.ptr, WNOHANG)
                 if (waitPidResult == -1) {
@@ -150,34 +151,58 @@ class Process(
                     if (startTime.elapsedNow() > duration) {
                         info("Timeout! Sending SIGKILL to the process(${command.toList()}): $duration exceeded.")
                         kill(pid, SIGKILL)
+                        timeout = true
                     }
                     continue
                 } else {
-                    return processExitStatus(status.value)
+                    val processExitStatus = ProcessExitStatus(status.value)
+                    if (timeout && processExitStatus.signalled() && processExitStatus.termsig() == SIGKILL) {
+                        throw ProcessTimeoutException()
+                    }
+                    return processExitStatus
                 }
             }
         }
         error("Unreachable")
     }
 
-    private fun processExitStatus(status: Int): Int =
-        when {
-            wifexited(status) -> wexitstatus(status)
-            wifsignaled(status) -> {
-                val signal = wtermsig(status)
-                error("Process was terminated by signal(${command.toList()}) $signal")
-            }
+    class ProcessTimeoutException : Exception()
+}
 
-            else -> error("Process did not exit normally(${command.toList()}): status = $status")
+data class ProcessExitStatus(
+    val value: Int,
+) {
+    fun exited(): Boolean = wifexited()
+
+    fun exitstatus(): Int {
+        if (wifexited()) {
+            return wexitstatus()
+        } else {
+            error("Process did not exit normally: status = $value")
         }
+    }
 
-    private fun wifexited(value: Int): Boolean = (value and 0xff) == 0
+    fun signalled(): Boolean = wifsignaled()
 
-    private fun wexitstatus(value: Int): Int = (value shr 8) and 0xff
+    fun termsig(): Int {
+        if (wifsignaled()) {
+            return wtermsig()
+        } else {
+            error("Process was not terminated by signal: status = $value")
+        }
+    }
 
-    private fun wifsignaled(value: Int): Boolean = (value and 0xff) != 0 && (value and 0x7f) != 0x7f
+    private fun wifexited(): Boolean = (value and 0xff) == 0
 
-    private fun wtermsig(value: Int): Int = value and 0x7f
+    private fun wexitstatus(): Int = (value shr 8) and 0xff
+
+    private fun wifsignaled(): Boolean = (value and 0xff) != 0 && (value and 0x7f) != 0x7f
+
+    private fun wtermsig(): Int = value and 0x7f
+
+    override fun toString(): String =
+        "ProcessExitStatus(value=$value, exited=${exited()}, exitstatus=${exitstatus()}," +
+            " signalled=${signalled()}, termsig=${termsig()}"
 }
 
 class FileDescriptor(

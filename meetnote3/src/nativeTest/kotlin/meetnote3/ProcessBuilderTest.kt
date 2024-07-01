@@ -12,10 +12,11 @@ class ProcessBuilderTest {
     @Test
     fun test() {
         runBlocking {
-            val status = ProcessBuilder("ls", "-l")
+            val processExitStatus = ProcessBuilder("ls", "-l")
                 .start(captureStdout = false, captureStderr = false)
                 .waitUntil(Duration.parse("10s"))
-            assert(status == 0)
+            assert(processExitStatus.exited())
+            assert(processExitStatus.exitstatus() == 0)
         }
     }
 }

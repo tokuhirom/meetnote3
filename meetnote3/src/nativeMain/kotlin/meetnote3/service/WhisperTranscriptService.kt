@@ -67,9 +67,9 @@ class WhisperTranscriptService(
                 "16000",
                 outputFilePath.toString(),
             ).start(captureStdout = true, captureStderr = true)
-        val exitCode = process.waitUntil(ffmpegTimeout)
-        if (exitCode != 0) {
-            throw Exception("ffmpeg failed with exit code $exitCode. Stderr: ${process.stderr?.slurpString()}")
+        val processExitStatus = process.waitUntil(ffmpegTimeout)
+        if (!(processExitStatus.exited() && processExitStatus.exitstatus() == 0)) {
+            throw Exception("ffmpeg failed with exit code $processExitStatus. Stderr: ${process.stderr?.slurpString()}")
         }
         if (FileSystem.SYSTEM.exists(outputFilePath)) {
             info("Converted to wave file: file://$outputFilePath")
@@ -95,9 +95,12 @@ class WhisperTranscriptService(
             language,
             waveFilePath.toString(),
         ).start(captureStdout = false, captureStderr = false)
-        val exitCode = process.waitUntil(whisperCppTimeout)
-        if (exitCode != 0) {
-            throw Exception("whisper-cpp failed with exit code $exitCode. Stderr: ${process.stderr?.slurpString()}")
+        val processExitStatus = process.waitUntil(whisperCppTimeout)
+        if (!(processExitStatus.exited() && processExitStatus.termsig() == 0)) {
+            throw Exception(
+                "whisper-cpp failed with exit code $processExitStatus." +
+                    " Stderr: ${process.stderr?.slurpString()}",
+            )
         }
 
         if (FileSystem.SYSTEM.exists(outputLrcFilePath)) {
