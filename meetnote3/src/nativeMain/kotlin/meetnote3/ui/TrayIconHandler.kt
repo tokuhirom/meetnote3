@@ -15,6 +15,7 @@ import platform.AppKit.NSStatusItem
 import platform.AppKit.NSTextView
 import platform.AppKit.NSVariableStatusItemLength
 import platform.AppKit.NSWindow
+import platform.AppKit.NSWindowDelegateProtocol
 import platform.AppKit.NSWindowStyleMaskClosable
 import platform.AppKit.NSWindowStyleMaskResizable
 import platform.AppKit.NSWindowStyleMaskTitled
@@ -30,62 +31,77 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCAction
 
 class TrayIconHandler {
-    // keep these properties as fields to avoid being garbage collected.
     private lateinit var appDelegate: NSApplicationDelegateProtocol
     private lateinit var statusItem: NSStatusItem
+    private var systemLogDialog: SystemLogDialog? = null
 
     @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
     fun startTrayIcon(serverPort: Int): NSApplicationDelegateProtocol {
-        appDelegate =
-            object : NSObject(), NSApplicationDelegateProtocol {
-                override fun applicationDidFinishLaunching(notification: NSNotification) {
-                    info("Application did finish launching")
-                    statusItem =
-                        NSStatusBar.systemStatusBar.statusItemWithLength(NSVariableStatusItemLength)
-                    statusItem.button?.title = "Meetnote3"
-                    val menu =
-                        NSMenu().apply {
-                            addItem(
-                                NSMenuItem(
-                                    "Open Browser",
-                                    action = NSSelectorFromString("openBrowser"),
-                                    keyEquivalent = "o",
-                                ),
-                            )
-                            addItem(
-                                NSMenuItem(
-                                    "Open System Log Viewer",
-                                    action = NSSelectorFromString("openSystemLogDialog"),
-                                    keyEquivalent = "s",
-                                ),
-                            )
-                            addItem(
-                                NSMenuItem(
-                                    "Quit",
-                                    action = NSSelectorFromString("terminate:"),
-                                    keyEquivalent = "q",
-                                ),
-                            )
-                        }
-                    statusItem.menu = menu
+        appDelegate = object : NSObject(), NSApplicationDelegateProtocol {
+            override fun applicationDidFinishLaunching(notification: NSNotification) {
+                info("Application did finish launching")
+                statusItem = NSStatusBar.systemStatusBar.statusItemWithLength(NSVariableStatusItemLength)
+                statusItem.button?.title = "Meetnote3"
+                val menu = NSMenu().apply {
+                    addItem(
+                        NSMenuItem(
+                            "Open Browser",
+                            action = NSSelectorFromString("openBrowser"),
+                            keyEquivalent = "o",
+                        ),
+                    )
+                    addItem(
+                        NSMenuItem(
+                            "Open System Log Viewer",
+                            action = NSSelectorFromString("openSystemLogDialog"),
+                            keyEquivalent = "s",
+                        ),
+                    )
+                    addItem(
+                        NSMenuItem(
+                            "Quit",
+                            action = NSSelectorFromString("terminate:"),
+                            keyEquivalent = "q",
+                        ),
+                    )
                 }
-
-                @ObjCAction
-                fun openBrowser() {
-                    info("Open browser")
-                    system("open http://localhost:$serverPort/")
-                }
-
-                @ObjCAction
-                fun openSystemLogDialog() {
-                    doOpenSystemLogDialog()
-                }
+                statusItem.menu = menu
             }
+
+            @ObjCAction
+            fun openBrowser() {
+                info("Open browser")
+                system("open http://localhost:$serverPort/")
+            }
+
+            @ObjCAction
+            fun openSystemLogDialog() {
+                if (systemLogDialog == null) {
+                    systemLogDialog = SystemLogDialog()
+                }
+                systemLogDialog?.show()
+            }
+        }
         return appDelegate
     }
+}
 
-    @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-    fun doOpenSystemLogDialog() {
+class SystemLogDialog :
+    NSObject(),
+    NSWindowDelegateProtocol {
+    private var window: NSWindow? = null
+    private lateinit var logBodyTextView: NSTextView
+
+    fun show() {
+        if (window == null) {
+            window = createWindow()
+        }
+        window?.makeKeyAndOrderFront(null)
+        window?.orderFrontRegardless()
+    }
+
+    @OptIn(ExperimentalForeignApi::class)
+    private fun createWindow(): NSWindow {
         val window = NSWindow(
             contentRect = NSMakeRect(0.0, 0.0, 480.0, 360.0),
             styleMask = NSWindowStyleMaskTitled or NSWindowStyleMaskClosable or NSWindowStyleMaskResizable,
@@ -93,39 +109,18 @@ class TrayIconHandler {
             defer = false,
         )
         window.title = "System Log Viewer"
-        lateinit var logBodyTextView: NSTextView
-
-        val handler =
-            object : NSObject(), NSApplicationDelegateProtocol {
-                @ObjCAction
-                fun logFileSelected(sender: NSPopUpButton) {
-                    info("Selected log file!!!")
-                    val selectedLogFile = sender.titleOfSelectedItem ?: return
-                    logBodyTextView.string = readLogFile(selectedLogFile)
-                }
-            }
+        window.delegate = this
 
         val contentView = window.contentView
-        var logFilesDropdown = NSPopUpButton(NSMakeRect(10.0, 320.0, 460.0, 30.0), false).apply {
+        val logFilesDropdown = NSPopUpButton(NSMakeRect(10.0, 320.0, 460.0, 30.0), false).apply {
             addItemsWithTitles(
-                listSystemLogFiles()
-                    .sortedByDescending {
-                        it.name
-                    }.take(5)
-                    .map { it.name },
+                listSystemLogFiles().sortedByDescending { it.name }.take(5).map { it.name },
             )
             setEnabled(true)
-            setTarget(handler)
+            setTarget(this@SystemLogDialog)
             setAction(NSSelectorFromString("logFileSelected:"))
         }
 
-        val scrollView = NSScrollView().apply {
-            translatesAutoresizingMaskIntoConstraints = false
-            documentView = NSTextView().apply {
-                setEditable(false)
-                string = "Hello, world"
-            }
-        }
         logBodyTextView = NSTextView(NSMakeRect(10.0, 10.0, 460.0, 300.0)).apply {
             setEditable(false)
         }
@@ -139,19 +134,30 @@ class TrayIconHandler {
             },
         )
 
-        window.contentView?.addSubview(scrollView)
-        window.makeKeyAndOrderFront(null)
-        window.orderFrontRegardless()
+        return window
     }
 
-    fun readLogFile(systemLog: String): String {
+    override fun windowWillClose(notification: NSNotification) {
+        info("Window will close")
+        window = null
+    }
+
+    @OptIn(BetaInteropApi::class)
+    @ObjCAction
+    fun logFileSelected(sender: NSPopUpButton) {
+        info("Selected log file")
+        val selectedLogFile = sender.titleOfSelectedItem ?: return
+        logBodyTextView.string = readLogFile(selectedLogFile)
+    }
+
+    private fun readLogFile(systemLog: String): String {
         val systemLogFile: Path? = listSystemLogFiles().find { it.name == systemLog }
-        if (systemLogFile != null) {
+        return if (systemLogFile != null) {
             FileSystem.SYSTEM.read(systemLogFile) {
-                return readUtf8()
+                readUtf8()
             }
         } else {
-            error("System log file not found.")
+            "System log file not found."
         }
     }
 }
