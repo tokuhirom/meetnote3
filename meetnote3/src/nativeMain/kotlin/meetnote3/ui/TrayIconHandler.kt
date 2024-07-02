@@ -20,6 +20,7 @@ class TrayIconHandler {
     private lateinit var appDelegate: NSApplicationDelegateProtocol
     private lateinit var statusItem: NSStatusItem
     private var systemLogDialog: SystemLogDialog? = null
+    private var meetingLogDialog: MeetingLogDialog? = null
 
     @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
     fun startTrayIcon(serverPort: Int): NSApplicationDelegateProtocol {
@@ -34,6 +35,13 @@ class TrayIconHandler {
                             "Open Browser",
                             action = NSSelectorFromString("openBrowser"),
                             keyEquivalent = "o",
+                        ),
+                    )
+                    addItem(
+                        NSMenuItem(
+                            "Open Meeting Log Viewer",
+                            action = NSSelectorFromString("openMeetingLogDialog"),
+                            keyEquivalent = "m",
                         ),
                     )
                     addItem(
@@ -66,6 +74,14 @@ class TrayIconHandler {
                     systemLogDialog = SystemLogDialog()
                 }
                 systemLogDialog?.show()
+            }
+
+            @ObjCAction
+            fun openMeetingLogDialog() {
+                if (meetingLogDialog == null) {
+                    meetingLogDialog = MeetingLogDialog()
+                }
+                meetingLogDialog?.show()
             }
         }
         return appDelegate
