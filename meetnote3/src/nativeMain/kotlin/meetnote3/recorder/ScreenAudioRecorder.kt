@@ -1,5 +1,6 @@
 package meetnote3.recorder
 
+import meetnote3.debug
 import meetnote3.eprintln
 import meetnote3.utils.fileExists
 import platform.AVFAudio.AVEncoderBitRateKey
@@ -109,7 +110,7 @@ suspend fun startScreenAudioRecord(
                 if (!audioWriterInput.appendSampleBuffer(didOutputSampleBuffer!!)) {
                     println("Cannot write audio")
                 } else {
-                    println("Audio written")
+                    debug("Audio written")
                 }
             } else {
                 println("Audio writer input not ready for more media data")
