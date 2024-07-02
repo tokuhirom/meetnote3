@@ -10,7 +10,6 @@ import platform.AppKit.NSVariableStatusItemLength
 import platform.Foundation.NSNotification
 import platform.Foundation.NSSelectorFromString
 import platform.darwin.NSObject
-import platform.posix.system
 
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -20,9 +19,10 @@ class TrayIconHandler {
     private lateinit var appDelegate: NSApplicationDelegateProtocol
     private lateinit var statusItem: NSStatusItem
     private var systemLogDialog: SystemLogDialog? = null
+    private var meetingLogDialog: MeetingLogDialog? = null
 
     @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-    fun startTrayIcon(serverPort: Int): NSApplicationDelegateProtocol {
+    fun startTrayIcon(): NSApplicationDelegateProtocol {
         appDelegate = object : NSObject(), NSApplicationDelegateProtocol {
             override fun applicationDidFinishLaunching(notification: NSNotification) {
                 info("Application did finish launching")
@@ -31,9 +31,9 @@ class TrayIconHandler {
                 val menu = NSMenu().apply {
                     addItem(
                         NSMenuItem(
-                            "Open Browser",
-                            action = NSSelectorFromString("openBrowser"),
-                            keyEquivalent = "o",
+                            "Open Meeting Log Viewer",
+                            action = NSSelectorFromString("openMeetingLogDialog"),
+                            keyEquivalent = "m",
                         ),
                     )
                     addItem(
@@ -55,17 +55,19 @@ class TrayIconHandler {
             }
 
             @ObjCAction
-            fun openBrowser() {
-                info("Open browser")
-                system("open http://localhost:$serverPort/")
-            }
-
-            @ObjCAction
             fun openSystemLogDialog() {
                 if (systemLogDialog == null) {
                     systemLogDialog = SystemLogDialog()
                 }
                 systemLogDialog?.show()
+            }
+
+            @ObjCAction
+            fun openMeetingLogDialog() {
+                if (meetingLogDialog == null) {
+                    meetingLogDialog = MeetingLogDialog()
+                }
+                meetingLogDialog?.show()
             }
         }
         return appDelegate
