@@ -92,6 +92,13 @@ class SystemLogDialog :
     private var window: NSWindow? = null
     private lateinit var logBodyTextView: NSTextView
 
+    // Note: instanceHolder cause the memory leak.
+    //
+    // Although this approach is not ideal, due to Kotlin/Native's memory management, the Window object can be
+    // unexpectedly deallocated, causing crashes. Therefore, I am currently implementing this workaround. If
+    // anyone knows a proper fix for this issue, please let me know!
+    private val instanceHolder = mutableListOf<NSWindow>()
+
     fun show() {
         if (window == null) {
             window = createWindow()
@@ -112,10 +119,9 @@ class SystemLogDialog :
         window.delegate = this
 
         val contentView = window.contentView
+        val logItems = listSystemLogFiles().sortedByDescending { it.name }.take(5).map { it.name }
         val logFilesDropdown = NSPopUpButton(NSMakeRect(10.0, 320.0, 460.0, 30.0), false).apply {
-            addItemsWithTitles(
-                listSystemLogFiles().sortedByDescending { it.name }.take(5).map { it.name },
-            )
+            addItemsWithTitles(logItems)
             setEnabled(true)
             setTarget(this@SystemLogDialog)
             setAction(NSSelectorFromString("logFileSelected:"))
@@ -123,6 +129,9 @@ class SystemLogDialog :
 
         logBodyTextView = NSTextView(NSMakeRect(10.0, 10.0, 460.0, 300.0)).apply {
             setEditable(false)
+        }
+        logItems.firstOrNull()?.let {
+            logBodyTextView.string = readLogFile(it)
         }
 
         contentView?.addSubview(logFilesDropdown)
@@ -134,11 +143,13 @@ class SystemLogDialog :
             },
         )
 
+        instanceHolder.add(window)
         return window
     }
 
     override fun windowWillClose(notification: NSNotification) {
         info("Window will close")
+        window?.delegate = null
         window = null
     }
 
@@ -151,6 +162,7 @@ class SystemLogDialog :
     }
 
     private fun readLogFile(systemLog: String): String {
+        info("Load log file: $systemLog")
         val systemLogFile: Path? = listSystemLogFiles().find { it.name == systemLog }
         return if (systemLogFile != null) {
             FileSystem.SYSTEM.read(systemLogFile) {
