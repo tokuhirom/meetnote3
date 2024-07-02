@@ -10,7 +10,6 @@ import platform.AppKit.NSVariableStatusItemLength
 import platform.Foundation.NSNotification
 import platform.Foundation.NSSelectorFromString
 import platform.darwin.NSObject
-import platform.posix.system
 
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -23,20 +22,13 @@ class TrayIconHandler {
     private var meetingLogDialog: MeetingLogDialog? = null
 
     @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-    fun startTrayIcon(serverPort: Int): NSApplicationDelegateProtocol {
+    fun startTrayIcon(): NSApplicationDelegateProtocol {
         appDelegate = object : NSObject(), NSApplicationDelegateProtocol {
             override fun applicationDidFinishLaunching(notification: NSNotification) {
                 info("Application did finish launching")
                 statusItem = NSStatusBar.systemStatusBar.statusItemWithLength(NSVariableStatusItemLength)
                 statusItem.button?.title = "Meetnote3"
                 val menu = NSMenu().apply {
-                    addItem(
-                        NSMenuItem(
-                            "Open Browser",
-                            action = NSSelectorFromString("openBrowser"),
-                            keyEquivalent = "o",
-                        ),
-                    )
                     addItem(
                         NSMenuItem(
                             "Open Meeting Log Viewer",
@@ -60,12 +52,6 @@ class TrayIconHandler {
                     )
                 }
                 statusItem.menu = menu
-            }
-
-            @ObjCAction
-            fun openBrowser() {
-                info("Open browser")
-                system("open http://localhost:$serverPort/")
             }
 
             @ObjCAction

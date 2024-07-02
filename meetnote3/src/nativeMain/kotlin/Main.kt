@@ -14,24 +14,16 @@ import platform.posix.getenv
 import kotlin.time.Duration
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.toKString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalForeignApi::class)
-fun getPort(): Int = getenv("MEETNOTE3_PORT")?.toKString()?.toInt() ?: 0
-
-@OptIn(ExperimentalForeignApi::class)
 @BetaInteropApi
 fun main() {
     getenv("MEETNOTE3_PORT")
     val summarizeService = SummarizeService()
-    val port = 0
-//    val tryPort = getPort()
-//    val port = Server(summarizeService).startServer(tryPort)
-    info("Server started at http://localhost:$port/")
 
     val systemLogPath = createNewSystemLogPath()
 
@@ -44,8 +36,6 @@ fun main() {
     }
 
     initLogger()
-
-    info("Server is ready: http://localhost:$port/")
 
     EnvironmentDiagnosticService().show()
 
@@ -67,7 +57,7 @@ fun main() {
 
     info("Registering tray icon...")
     val trayIconHandler = TrayIconHandler()
-    val appDelegate = trayIconHandler.startTrayIcon(serverPort = port)
+    val appDelegate = trayIconHandler.startTrayIcon()
     app.delegate = appDelegate
     app.run()
     error("Should not reach here.")
