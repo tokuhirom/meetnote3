@@ -2,6 +2,7 @@ package meetnote3.model
 
 import meetnote3.info
 import meetnote3.model.DocumentDirectory.Companion.dateTimeFormatter
+import meetnote3.transcript.getLrcLastTimestamp
 import meetnote3.utils.getHomeDirectory
 import okio.FileNotFoundException
 import okio.FileSystem
@@ -65,6 +66,18 @@ data class DocumentDirectory(
         } catch (e: FileNotFoundException) {
             info("Failed to create images directory: $e")
             emptyList()
+        }
+
+    fun duration(): String? =
+        if (FileSystem.SYSTEM.exists(lrcFilePath())) {
+            try {
+                getLrcLastTimestamp(lrcFilePath())
+            } catch (e: Exception) {
+                info("Failed to get last timestamp: ${e.message}")
+                null
+            }
+        } else {
+            null
         }
 
     companion object {

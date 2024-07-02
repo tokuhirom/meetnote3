@@ -1,6 +1,5 @@
 import meetnote3.info
 import meetnote3.initLogger
-import meetnote3.server.Server
 import meetnote3.service.EnvironmentDiagnosticService
 import meetnote3.service.RecoveringService
 import meetnote3.service.SummarizeService
@@ -29,8 +28,9 @@ fun getPort(): Int = getenv("MEETNOTE3_PORT")?.toKString()?.toInt() ?: 0
 fun main() {
     getenv("MEETNOTE3_PORT")
     val summarizeService = SummarizeService()
-    val tryPort = getPort()
-    val port = Server(summarizeService).startServer(tryPort)
+    val port = 0
+//    val tryPort = getPort()
+//    val port = Server(summarizeService).startServer(tryPort)
     info("Server started at http://localhost:$port/")
 
     val systemLogPath = createNewSystemLogPath()

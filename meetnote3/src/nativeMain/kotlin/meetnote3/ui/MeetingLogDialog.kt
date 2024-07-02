@@ -2,7 +2,6 @@ package meetnote3.ui
 
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
-import meetnote3.service.listMeetingLogs
 import okio.FileSystem
 import okio.IOException
 import platform.AppKit.NSBackingStoreBuffered
@@ -29,6 +28,7 @@ class MeetingLogDialog :
     NSWindowDelegateProtocol {
     private var window: NSWindow? = null
     private lateinit var notesBodyTextView: NSTextView
+    private lateinit var lrcBodyTextView: NSTextView
 
     private val instanceHolder = mutableListOf<NSWindow>()
 
@@ -52,7 +52,17 @@ class MeetingLogDialog :
         window.delegate = this
 
         val contentView = window.contentView
-        val notesItems = listMeetingLogs().sortedByDescending { it.name }.take(5).map { it.name }
+        val notesItems = DocumentDirectory
+            .listAll()
+            .sortedByDescending { it.shortName() }
+            .take(50)
+            .map {
+                it.basedir.name + " " + it.duration() + " " + if (FileSystem.SYSTEM.exists(it.summaryFilePath())) {
+                    "✅"
+                } else {
+                    "❌"
+                }
+            }
         val notesFilesDropdown = NSPopUpButton(NSMakeRect(10.0, 680.0, 300.0, 30.0), false).apply {
             addItemsWithTitles(notesItems)
             setEnabled(true)
@@ -60,16 +70,15 @@ class MeetingLogDialog :
             setAction(NSSelectorFromString("notesFileSelected:"))
         }
 
-        notesBodyTextView = NSTextView(NSMakeRect(320.0, 10.0, 630.0, 660.0)).apply {
+        notesBodyTextView = NSTextView(NSMakeRect(320.0, 10.0, 630.0, 320.0)).apply {
             setEditable(false)
         }
+        lrcBodyTextView = NSTextView(NSMakeRect(320.0, 340.0, 630.0, 320.0)).apply {
+            setEditable(false)
+        }
+
         notesItems.firstOrNull()?.let {
-            val document = DocumentDirectory.find(it)
-            if (document != null) {
-                notesBodyTextView.string = readSummaryFile(document)
-            } else {
-                notesBodyTextView.string = "Document not found."
-            }
+            setDocument(it)
         }
 
         contentView?.addSubview(notesFilesDropdown)
@@ -77,7 +86,14 @@ class MeetingLogDialog :
             NSScrollView().apply {
                 translatesAutoresizingMaskIntoConstraints = false
                 documentView = notesBodyTextView
-                setFrame(NSMakeRect(320.0, 10.0, 630.0, 660.0))
+                setFrame(NSMakeRect(320.0, 340.0, 630.0, 320.0))
+            },
+        )
+        contentView?.addSubview(
+            NSScrollView().apply {
+                translatesAutoresizingMaskIntoConstraints = false
+                documentView = lrcBodyTextView
+                setFrame(NSMakeRect(320.0, 10.0, 630.0, 320.0))
             },
         )
 
@@ -96,11 +112,26 @@ class MeetingLogDialog :
     fun notesFileSelected(sender: NSPopUpButton) {
         info("Selected notes file")
         val selectedNotesFile = sender.titleOfSelectedItem ?: return
-        val document = DocumentDirectory.find(selectedNotesFile!!)
+        setDocument(selectedNotesFile)
+    }
+
+    private fun extractNameFromTitle(input: String): String {
+        val indexOfFirstSpace = input.indexOf(' ')
+        return if (indexOfFirstSpace != -1) {
+            input.substring(0, indexOfFirstSpace)
+        } else {
+            input // スペースがない場合、元の文字列をそのまま返す
+        }
+    }
+
+    fun setDocument(name: String) {
+        val document = DocumentDirectory.find(extractNameFromTitle(name))
         if (document != null) {
             notesBodyTextView.string = readSummaryFile(document)
+            lrcBodyTextView.string = readLrcFile(document)
         } else {
             notesBodyTextView.string = "Document not found."
+            lrcBodyTextView.string = "Document not found."
         }
     }
 
@@ -108,7 +139,7 @@ class MeetingLogDialog :
         info("Load notes file: $document")
 
         return try {
-            FileSystem.SYSTEM.read(document.lrcFilePath()) {
+            FileSystem.SYSTEM.read(document.summaryFilePath()) {
                 readUtf8()
             }
         } catch (e: IOException) {
