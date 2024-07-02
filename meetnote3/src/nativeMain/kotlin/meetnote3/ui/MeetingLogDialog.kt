@@ -4,6 +4,7 @@ import meetnote3.info
 import meetnote3.model.DocumentDirectory
 import meetnote3.service.listMeetingLogs
 import okio.FileSystem
+import okio.IOException
 import platform.AppKit.NSBackingStoreBuffered
 import platform.AppKit.NSPopUpButton
 import platform.AppKit.NSScrollView
@@ -63,7 +64,12 @@ class MeetingLogDialog :
             setEditable(false)
         }
         notesItems.firstOrNull()?.let {
-            notesBodyTextView.string = readNotesFile(it)
+            val document = DocumentDirectory.find(it)
+            if (document != null) {
+                notesBodyTextView.string = readSummaryFile(document)
+            } else {
+                notesBodyTextView.string = "Document not found."
+            }
         }
 
         contentView?.addSubview(notesFilesDropdown)
@@ -90,18 +96,35 @@ class MeetingLogDialog :
     fun notesFileSelected(sender: NSPopUpButton) {
         info("Selected notes file")
         val selectedNotesFile = sender.titleOfSelectedItem ?: return
-        notesBodyTextView.string = readNotesFile(selectedNotesFile)
+        val document = DocumentDirectory.find(selectedNotesFile!!)
+        if (document != null) {
+            notesBodyTextView.string = readSummaryFile(document)
+        } else {
+            notesBodyTextView.string = "Document not found."
+        }
     }
 
-    private fun readNotesFile(notesFile: String): String {
-        info("Load notes file: $notesFile")
-        val document = DocumentDirectory.find(notesFile!!)
-        return if (document != null) {
+    private fun readSummaryFile(document: DocumentDirectory): String {
+        info("Load notes file: $document")
+
+        return try {
             FileSystem.SYSTEM.read(document.lrcFilePath()) {
                 readUtf8()
             }
-        } else {
-            "Meeting notes file not found."
+        } catch (e: IOException) {
+            "Cannot read summary file(${e.message}): ${document.summaryFilePath()}"
+        }
+    }
+
+    private fun readLrcFile(document: DocumentDirectory): String {
+        info("Load notes file: $document")
+
+        return try {
+            FileSystem.SYSTEM.read(document.lrcFilePath()) {
+                readUtf8()
+            }
+        } catch (e: IOException) {
+            "Cannot read lrc file(${e.message}): ${document.lrcFilePath()}"
         }
     }
 }
