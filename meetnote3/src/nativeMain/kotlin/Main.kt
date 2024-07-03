@@ -2,7 +2,6 @@ import meetnote3.info
 import meetnote3.initLogger
 import meetnote3.service.Container
 import meetnote3.service.EnvironmentDiagnosticService
-import meetnote3.ui.TrayIconHandler
 import meetnote3.utils.createNewSystemLogPath
 import meetnote3.utils.getChildProcs
 import meetnote3.utils.redirectOutput
@@ -50,8 +49,7 @@ fun main() {
     val app = NSApplication.sharedApplication()
 
     info("Registering tray icon...")
-    val trayIconHandler = TrayIconHandler()
-    val appDelegate = trayIconHandler.startTrayIcon()
+    val appDelegate = container.startTrayIcon()
     app.delegate = appDelegate
     app.run()
     error("Should not reach here.")

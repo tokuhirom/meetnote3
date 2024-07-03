@@ -20,6 +20,8 @@ class SummarizingWorker(
         sharedFlow.emit(documentDirectory)
     }
 
+    fun processingDocument(): DocumentDirectory? = processingDocument
+
     fun start() {
         info("SummarizingWorker started.")
 

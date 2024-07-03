@@ -1,7 +1,9 @@
 package meetnote3.service
 
+import meetnote3.ui.TrayIconHandler
 import meetnote3.workers.SummarizingWorker
 import meetnote3.workers.TranscriptWorker
+import platform.AppKit.NSApplicationDelegateProtocol
 
 import kotlin.time.Duration
 import kotlinx.cinterop.BetaInteropApi
@@ -16,6 +18,12 @@ class Container {
     private val whisperTranscriptService = WhisperTranscriptService(summarizingWorker)
     private val transcriptWorker = TranscriptWorker(whisperTranscriptService)
     private val recordingService = RecordingService(captureMixService, transcriptWorker)
+    private val trayIconHandler = TrayIconHandler(
+        summarizingWorker,
+        transcriptWorker,
+    )
+
+    fun startTrayIcon(): NSApplicationDelegateProtocol = trayIconHandler.startTrayIcon()
 
     @OptIn(BetaInteropApi::class)
     private val windowMonitoringService = WindowMonitoringService().apply {
