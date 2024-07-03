@@ -5,10 +5,10 @@ import platform.posix.SIGKILL
 import platform.posix.STDERR_FILENO
 import platform.posix.STDOUT_FILENO
 import platform.posix.WNOHANG
+import platform.posix._exit
 import platform.posix.close
 import platform.posix.dup2
 import platform.posix.execvp
-import platform.posix.exit
 import platform.posix.fork
 import platform.posix.kill
 import platform.posix.perror
@@ -84,7 +84,7 @@ class ProcessBuilder(
                 val args = (command.toList() + listOf(null)).map { it?.cstr?.ptr }.toCValues()
                 execvp(command[0], args)
                 perror("execvp")
-                exit(1)
+                _exit(1)
             } else {
                 // parent process
                 if (stdoutPipe != null) {

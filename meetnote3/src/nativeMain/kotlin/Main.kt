@@ -1,9 +1,7 @@
 import meetnote3.info
 import meetnote3.initLogger
+import meetnote3.service.Container
 import meetnote3.service.EnvironmentDiagnosticService
-import meetnote3.service.RecoveringService
-import meetnote3.service.SummarizeService
-import meetnote3.service.WholeWorkersFactoryService
 import meetnote3.ui.TrayIconHandler
 import meetnote3.utils.createNewSystemLogPath
 import meetnote3.utils.getChildProcs
@@ -23,7 +21,6 @@ import kotlinx.coroutines.launch
 @BetaInteropApi
 fun main() {
     getenv("MEETNOTE3_PORT")
-    val summarizeService = SummarizeService()
 
     val systemLogPath = createNewSystemLogPath()
 
@@ -39,11 +36,8 @@ fun main() {
 
     EnvironmentDiagnosticService().show()
 
-    CoroutineScope(Dispatchers.Default).launch {
-        RecoveringService(summarizeService).recover()
-    }
-
-    WholeWorkersFactoryService(summarizeService).runAll()
+    val container = Container()
+    container.runAllWorkers()
 
     CoroutineScope(Dispatchers.Default).launch {
         println("Showing child processes...")

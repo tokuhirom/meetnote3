@@ -4,13 +4,15 @@ import meetnote3.debug
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
 import meetnote3.recorder.mix
+import meetnote3.workers.SummarizingWorker
+import meetnote3.workers.TranscriptWorker
 import okio.FileSystem
 
 class RecoveringService(
-    private val summarizeService: SummarizeService,
+    private val transcriptWorker: TranscriptWorker,
+    private val summarizingWorker: SummarizingWorker,
 ) {
     private val fs = FileSystem.SYSTEM
-    private val whisperTranscriptService = WhisperTranscriptService()
 
     suspend fun recover() {
         println("RecoveringService.recover")
@@ -45,10 +47,10 @@ class RecoveringService(
             fs.delete(dd.waveFilePath())
         }
         if (fs.exists(dd.mixedFilePath()) && !fs.exists(dd.lrcFilePath())) {
-            whisperTranscriptService.transcribe(dd)
+            transcriptWorker.emit(dd)
         }
         if (fs.exists(dd.lrcFilePath()) && !fs.exists(dd.summaryFilePath())) {
-            summarizeService.summarize(dd)
+            summarizingWorker.emit(dd)
         }
     }
 }
