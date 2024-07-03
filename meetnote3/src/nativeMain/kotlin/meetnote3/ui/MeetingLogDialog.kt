@@ -35,7 +35,7 @@ import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 fun ByteArray.toNSData(): NSData =
     this.usePinned { pinned ->
         NSData.create(
@@ -127,7 +127,7 @@ class MeetingLogDialog :
                 translatesAutoresizingMaskIntoConstraints = false
                 documentView = imagesContainerView
                 setFrame(NSMakeRect(10.0, 10.0, 300.0, 320.0))
-                hasHorizontalScroller = true
+                hasHorizontalScroller = false
                 hasVerticalScroller = true
             },
         )
@@ -159,7 +159,7 @@ class MeetingLogDialog :
         }
     }
 
-    fun setDocument(name: String) {
+    private fun setDocument(name: String) {
         val document = DocumentDirectory.find(extractNameFromTitle(name))
         if (document != null) {
             imagesContainerView.subviews.forEach {
@@ -195,7 +195,14 @@ class MeetingLogDialog :
                 readByteArray()
             }
             val nsImage = NSImage(data = imageData.toNSData())
-            val imageView = NSImageView(CGRectMake(0.0, (index * 310).toDouble(), 300.0, 300.0)).apply {
+            val imageView = NSImageView(
+                CGRectMake(
+                    x = 0.0,
+                    y = (index * 310).toDouble(),
+                    width = 300.0,
+                    height = 300.0,
+                ),
+            ).apply {
                 image = nsImage
                 imageScaling = NSImageScaleProportionallyUpOrDown
             }
