@@ -45,6 +45,13 @@ class TrayIconHandler {
                     )
                     addItem(
                         NSMenuItem(
+                            "Open Stats Viewer",
+                            action = NSSelectorFromString("openStatsDialog"),
+                            keyEquivalent = "t",
+                        ),
+                    )
+                    addItem(
+                        NSMenuItem(
                             "Quit",
                             action = NSSelectorFromString("terminate:"),
                             keyEquivalent = "q",
@@ -68,6 +75,12 @@ class TrayIconHandler {
                     meetingLogDialog = MeetingLogDialog()
                 }
                 meetingLogDialog?.show()
+            }
+
+            @ObjCAction
+            fun openStatsDialog() {
+                val statsDialog = StatsDialog()
+                statsDialog.show()
             }
         }
         return appDelegate
