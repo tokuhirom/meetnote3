@@ -4,24 +4,45 @@ import meetnote3.info
 import meetnote3.model.DocumentDirectory
 import okio.FileSystem
 import okio.IOException
+import okio.Path
 import platform.AppKit.NSBackingStoreBuffered
+import platform.AppKit.NSImage
+import platform.AppKit.NSImageScaleProportionallyUpOrDown
+import platform.AppKit.NSImageView
 import platform.AppKit.NSPopUpButton
 import platform.AppKit.NSScrollView
 import platform.AppKit.NSTextView
+import platform.AppKit.NSView
+import platform.AppKit.NSViewHeightSizable
+import platform.AppKit.NSViewWidthSizable
 import platform.AppKit.NSWindow
 import platform.AppKit.NSWindowDelegateProtocol
 import platform.AppKit.NSWindowStyleMaskClosable
 import platform.AppKit.NSWindowStyleMaskResizable
 import platform.AppKit.NSWindowStyleMaskTitled
 import platform.AppKit.translatesAutoresizingMaskIntoConstraints
+import platform.CoreGraphics.CGRectMake
+import platform.Foundation.NSData
 import platform.Foundation.NSMakeRect
 import platform.Foundation.NSNotification
 import platform.Foundation.NSSelectorFromString
+import platform.Foundation.create
 import platform.darwin.NSObject
 
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCAction
+import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.usePinned
+
+@OptIn(ExperimentalForeignApi::class)
+fun ByteArray.toNSData(): NSData =
+    this.usePinned { pinned ->
+        NSData.create(
+            bytes = pinned.addressOf(0),
+            length = this.size.toULong(),
+        )
+    }
 
 class MeetingLogDialog :
     NSObject(),
@@ -29,6 +50,7 @@ class MeetingLogDialog :
     private var window: NSWindow? = null
     private lateinit var notesBodyTextView: NSTextView
     private lateinit var lrcBodyTextView: NSTextView
+    private lateinit var imagesContainerView: NSView
 
     private val instanceHolder = mutableListOf<NSWindow>()
 
@@ -77,6 +99,10 @@ class MeetingLogDialog :
             setEditable(false)
         }
 
+        imagesContainerView = NSView(NSMakeRect(10.0, 10.0, 300.0, 320.0)).apply {
+            setAutoresizingMask(NSViewWidthSizable or NSViewHeightSizable)
+        }
+
         notesItems.firstOrNull()?.let {
             setDocument(it)
         }
@@ -94,6 +120,15 @@ class MeetingLogDialog :
                 translatesAutoresizingMaskIntoConstraints = false
                 documentView = lrcBodyTextView
                 setFrame(NSMakeRect(320.0, 10.0, 630.0, 320.0))
+            },
+        )
+        contentView?.addSubview(
+            NSScrollView().apply {
+                translatesAutoresizingMaskIntoConstraints = false
+                documentView = imagesContainerView
+                setFrame(NSMakeRect(10.0, 10.0, 300.0, 320.0))
+                hasHorizontalScroller = true
+                hasVerticalScroller = true
             },
         )
 
@@ -127,11 +162,46 @@ class MeetingLogDialog :
     fun setDocument(name: String) {
         val document = DocumentDirectory.find(extractNameFromTitle(name))
         if (document != null) {
+            imagesContainerView.subviews.forEach {
+                if (it is NSView) {
+                    it.removeFromSuperview()
+                }
+            }
+            document.listImages().forEachIndexed { index, path: Path ->
+                info("Image path: $path")
+                displayImage(path, index)
+            }
+
             notesBodyTextView.string = readSummaryFile(document)
             lrcBodyTextView.string = readLrcFile(document)
         } else {
             notesBodyTextView.string = "Document not found."
             lrcBodyTextView.string = "Document not found."
+            imagesContainerView.subviews.forEach {
+                if (it is NSView) {
+                    it.removeFromSuperview()
+                }
+            }
+        }
+    }
+
+    @OptIn(ExperimentalForeignApi::class)
+    private fun displayImage(
+        path: Path,
+        index: Int,
+    ) {
+        try {
+            val imageData = FileSystem.SYSTEM.read(path) {
+                readByteArray()
+            }
+            val nsImage = NSImage(data = imageData.toNSData())
+            val imageView = NSImageView(CGRectMake(0.0, (index * 310).toDouble(), 300.0, 300.0)).apply {
+                image = nsImage
+                imageScaling = NSImageScaleProportionallyUpOrDown
+            }
+            imagesContainerView.addSubview(imageView)
+        } catch (e: IOException) {
+            info("Cannot read image file(${e.message}): $path")
         }
     }
 
