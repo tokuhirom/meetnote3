@@ -193,7 +193,6 @@ class MeetingLogDialog :
 
         containerView.addSubview(playButton)
         containerView.addSubview(pauseButton)
-        containerView.addSubview(stopButton)
         containerView.addSubview(currentTimeLabel)
         containerView.addSubview(seekButton)
 
