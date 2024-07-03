@@ -22,10 +22,14 @@ class TranscriptWorker(
 ) {
     private val sharedFlow = MutableSharedFlow<DocumentDirectory>()
     private val processLogs = mutableListOf<ProcessLog>()
+    private var waitingCount = 0
 
     fun processLogs(): List<ProcessLog> = processLogs
 
+    fun waitingCount(): Int = waitingCount
+
     suspend fun emit(documentDirectory: DocumentDirectory) {
+        waitingCount++
         sharedFlow.emit(documentDirectory)
     }
 
@@ -50,6 +54,8 @@ class TranscriptWorker(
                 } catch (e: Exception) {
                     warn("Cannot transcribe $documentDirectory: $e")
                     processLog.error = e.toString()
+                } finally {
+                    waitingCount--
                 }
             }
         }

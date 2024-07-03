@@ -138,6 +138,7 @@ class StatsDialog(
                     }
                     append("\n\n")
                 }
+                append("\n\n  Waiting count: ${transcriptWorker.waitingCount()}\n")
                 append("\n")
             }.toString()
     }
