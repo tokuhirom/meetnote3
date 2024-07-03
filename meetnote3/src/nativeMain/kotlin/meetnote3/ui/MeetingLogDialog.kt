@@ -6,11 +6,14 @@ import okio.FileSystem
 import okio.IOException
 import okio.Path
 import platform.AppKit.NSBackingStoreBuffered
+import platform.AppKit.NSButton
 import platform.AppKit.NSImage
 import platform.AppKit.NSImageScaleProportionallyUpOrDown
 import platform.AppKit.NSImageView
 import platform.AppKit.NSPopUpButton
 import platform.AppKit.NSScrollView
+import platform.AppKit.NSTextAlignmentCenter
+import platform.AppKit.NSTextField
 import platform.AppKit.NSTextView
 import platform.AppKit.NSView
 import platform.AppKit.NSViewHeightSizable
@@ -111,6 +114,7 @@ class MeetingLogDialog :
         }
 
         contentView?.addSubview(notesFilesDropdown)
+        contentView?.addSubview(buildAudioPlayer())
         contentView?.addSubview(
             NSScrollView().apply {
                 translatesAutoresizingMaskIntoConstraints = false
@@ -137,6 +141,52 @@ class MeetingLogDialog :
 
         instanceHolder.add(window)
         return window
+    }
+
+    @OptIn(ExperimentalForeignApi::class)
+    private fun buildAudioPlayer(): NSView {
+        val audioPlayer = AudioPlayer()
+
+        val containerView = NSView(NSMakeRect(0.0, 0.0, 400.0, 300.0))
+
+        val playButton = NSButton(NSMakeRect(50.0, 100.0, 80.0, 30.0))
+        playButton.title = "Play"
+        playButton.setTarget {
+            audioPlayer.play("/path/to/your/audiofile.m4a")
+        }
+
+        val pauseButton = NSButton(NSMakeRect(150.0, 100.0, 80.0, 30.0))
+        pauseButton.title = "Pause"
+        pauseButton.setTarget {
+            audioPlayer.pause()
+        }
+
+        val stopButton = NSButton(NSMakeRect(250.0, 100.0, 80.0, 30.0))
+        stopButton.title = "Stop"
+        stopButton.setTarget {
+            audioPlayer.stop()
+        }
+
+        val currentTimeLabel = NSTextField(NSMakeRect(150.0, 150.0, 100.0, 30.0))
+        currentTimeLabel.stringValue = "00:00"
+        currentTimeLabel.setEditable(false)
+        currentTimeLabel.setBezeled(true)
+        currentTimeLabel.alignment = NSTextAlignmentCenter
+        AudioPlayer.currentTimeLabel = currentTimeLabel
+
+        val seekButton = NSButton(NSMakeRect(150.0, 200.0, 100.0, 30.0))
+        seekButton.title = "Seek to 10:00"
+        seekButton.setTarget {
+            audioPlayer.seekToTime(600.0) // 10分 = 600秒
+        }
+
+        containerView.addSubview(playButton)
+        containerView.addSubview(pauseButton)
+        containerView.addSubview(stopButton)
+        containerView.addSubview(currentTimeLabel)
+        containerView.addSubview(seekButton)
+
+        return containerView
     }
 
     override fun windowWillClose(notification: NSNotification) {
