@@ -6,11 +6,14 @@ import okio.FileSystem
 import okio.IOException
 import okio.Path
 import platform.AppKit.NSBackingStoreBuffered
+import platform.AppKit.NSButton
 import platform.AppKit.NSImage
 import platform.AppKit.NSImageScaleProportionallyUpOrDown
 import platform.AppKit.NSImageView
 import platform.AppKit.NSPopUpButton
 import platform.AppKit.NSScrollView
+import platform.AppKit.NSTextAlignmentCenter
+import platform.AppKit.NSTextField
 import platform.AppKit.NSTextView
 import platform.AppKit.NSView
 import platform.AppKit.NSViewHeightSizable
@@ -54,6 +57,8 @@ class MeetingLogDialog :
     private lateinit var notesBodyTextView: NSTextView
     private lateinit var lrcBodyTextView: NSTextView
     private lateinit var imagesContainerView: NSView
+    private lateinit var documentDirectory: DocumentDirectory
+    private val audioPlayer = AudioPlayer()
 
     private val instanceHolder = mutableListOf<NSWindow>()
 
@@ -134,13 +139,69 @@ class MeetingLogDialog :
                 hasVerticalScroller = true
             },
         )
+        contentView?.addSubview(buildAudioPlayer())
 
         instanceHolder.add(window)
         return window
     }
 
+    @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+    private fun buildAudioPlayer(): NSView {
+        val containerView = NSView(NSMakeRect(320.0, 680.0, 630.0, 40.0))
+
+        val audioPlayerController = object : NSObject() {
+            @ObjCAction
+            fun onPlayButtonClicked() {
+                info("Start player...")
+                if (FileSystem.SYSTEM.exists(documentDirectory.mixedFilePath())) {
+                    info("Play audio file: ${documentDirectory.mixedFilePath()}")
+                    audioPlayer.play(documentDirectory.mixedFilePath().toString())
+                } else {
+                    info("Audio file not found: ${documentDirectory.mixedFilePath()}")
+                }
+            }
+
+            @ObjCAction
+            fun onPauseButtonClicked() {
+                info("Pause player...")
+                audioPlayer.pause()
+            }
+        }
+
+        val playButton = NSButton(NSMakeRect(10.0, 10.0, 80.0, 30.0))
+        playButton.title = "Play"
+        playButton.target = audioPlayerController
+        playButton.action = NSSelectorFromString("onPlayButtonClicked")
+
+        val pauseButton = NSButton(NSMakeRect(100.0, 10.0, 80.0, 30.0))
+        pauseButton.title = "Pause"
+        pauseButton.target = audioPlayerController
+        pauseButton.action = NSSelectorFromString("onPauseButtonClicked")
+
+        val currentTimeLabel = NSTextField(NSMakeRect(280.0, 10.0, 80.0, 30.0))
+        currentTimeLabel.stringValue = "00:00"
+        currentTimeLabel.setEditable(false)
+        currentTimeLabel.setBezeled(true)
+        currentTimeLabel.alignment = NSTextAlignmentCenter
+        AudioPlayer.currentTimeLabel = currentTimeLabel
+
+        val seekButton = NSButton(NSMakeRect(370.0, 10.0, 80.0, 30.0))
+        seekButton.title = "Seek to 10:00"
+        seekButton.setTarget {
+            audioPlayer.seekToTime(600.0) // 10分 = 600秒
+        }
+
+        containerView.addSubview(playButton)
+        containerView.addSubview(pauseButton)
+        containerView.addSubview(currentTimeLabel)
+        containerView.addSubview(seekButton)
+
+        return containerView
+    }
+
     override fun windowWillClose(notification: NSNotification) {
         info("Window will close")
+        audioPlayer.stop()
         window?.delegate = null
         window = null
     }
@@ -165,6 +226,9 @@ class MeetingLogDialog :
     private fun setDocument(name: String) {
         val document = DocumentDirectory.find(extractNameFromTitle(name))
         if (document != null) {
+            audioPlayer.pause()
+
+            this.documentDirectory = document
             imagesContainerView.subviews.forEach {
                 if (it is NSView) {
                     it.removeFromSuperview()
