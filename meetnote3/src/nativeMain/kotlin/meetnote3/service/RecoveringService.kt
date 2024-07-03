@@ -17,7 +17,16 @@ class RecoveringService(
     suspend fun recover() {
         println("RecoveringService.recover")
 
-        val dirs = DocumentDirectory.listAll()
+        val dirs = DocumentDirectory
+            .listAll()
+            .filter {
+                !FileSystem.SYSTEM.exists(it.summaryFilePath())
+            }.filter {
+                !it.isBrokenScreenAudio()
+            }.sortedByDescending {
+                it.shortName()
+            }
+
         info("Recovering: ${dirs.size} directories.")
         dirs.forEach {
             try {
@@ -34,7 +43,7 @@ class RecoveringService(
         // create mixed file if not exists
         if (fs.exists(dd.micFilePath()) && fs.exists(dd.screenFilePath()) && !fs.exists(dd.mixedFilePath())) {
             info("Recovering: $dd")
-            if ((FileSystem.SYSTEM.metadataOrNull(dd.screenFilePath())?.size ?: 0L) == 44L) {
+            if (dd.isBrokenScreenAudio()) {
                 // A 44-byte file contains only the header and no data.
                 // In this case, it is assumed that the file was not saved halfway, so recovery is skipped.
                 debug("Incomplete file. Skip recovering: $dd")
