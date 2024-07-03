@@ -26,13 +26,16 @@ import platform.Foundation.NSData
 import platform.Foundation.NSMakeRect
 import platform.Foundation.NSNotification
 import platform.Foundation.NSSelectorFromString
+import platform.Foundation.NSSize
 import platform.Foundation.create
 import platform.darwin.NSObject
 
 import kotlinx.cinterop.BetaInteropApi
+import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.useContents
 import kotlinx.cinterop.usePinned
 
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
@@ -99,7 +102,7 @@ class MeetingLogDialog :
             setEditable(false)
         }
 
-        imagesContainerView = NSView(NSMakeRect(10.0, 10.0, 300.0, 320.0)).apply {
+        imagesContainerView = NSView(NSMakeRect(10.0, 10.0, 10.0, 20.0)).apply {
             setAutoresizingMask(NSViewWidthSizable or NSViewHeightSizable)
         }
 
@@ -167,9 +170,10 @@ class MeetingLogDialog :
                     it.removeFromSuperview()
                 }
             }
-            document.listImages().forEachIndexed { index, path: Path ->
+            var offset = 0.0
+            document.listImages().forEach { path: Path ->
                 info("Image path: $path")
-                displayImage(path, index)
+                offset += displayImage(path, offset)
             }
 
             notesBodyTextView.string = readSummaryFile(document)
@@ -188,27 +192,35 @@ class MeetingLogDialog :
     @OptIn(ExperimentalForeignApi::class)
     private fun displayImage(
         path: Path,
-        index: Int,
-    ) {
+        offset: Double,
+    ): Double {
         try {
             val imageData = FileSystem.SYSTEM.read(path) {
                 readByteArray()
             }
             val nsImage = NSImage(data = imageData.toNSData())
+            val originalSize: CValue<NSSize> = nsImage.size
+            val width = 300.0
+            val height = originalSize
+                .useContents {
+                    (width / this.width) * this.height
+                }.toDouble()
             val imageView = NSImageView(
                 CGRectMake(
                     x = 0.0,
-                    y = (index * 310).toDouble(),
+                    y = offset,
                     width = 300.0,
-                    height = 300.0,
+                    height = height,
                 ),
             ).apply {
                 image = nsImage
                 imageScaling = NSImageScaleProportionallyUpOrDown
             }
             imagesContainerView.addSubview(imageView)
+            return height
         } catch (e: IOException) {
             info("Cannot read image file(${e.message}): $path")
+            return 0.0
         }
     }
 
