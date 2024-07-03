@@ -34,13 +34,19 @@ class RecoveringService(
         // create mixed file if not exists
         if (fs.exists(dd.micFilePath()) && fs.exists(dd.screenFilePath()) && !fs.exists(dd.mixedFilePath())) {
             info("Recovering: $dd")
-            mix(
-                listOf(
-                    dd.micFilePath().toString(),
-                    dd.screenFilePath().toString(),
-                ),
-                dd.mixedFilePath().toString(),
-            )
+            if ((FileSystem.SYSTEM.metadataOrNull(dd.screenFilePath())?.size ?: 0L) == 44L) {
+                // A 44-byte file contains only the header and no data.
+                // In this case, it is assumed that the file was not saved halfway, so recovery is skipped.
+                debug("Incomplete file. Skip recovering: $dd")
+            } else {
+                mix(
+                    listOf(
+                        dd.micFilePath().toString(),
+                        dd.screenFilePath().toString(),
+                    ),
+                    dd.mixedFilePath().toString(),
+                )
+            }
         }
         if (fs.exists(dd.waveFilePath())) {
             info("Remove temporary file $dd")

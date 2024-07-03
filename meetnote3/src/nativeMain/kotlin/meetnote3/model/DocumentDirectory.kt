@@ -92,6 +92,7 @@ data class DocumentDirectory(
         when {
             FileSystem.SYSTEM.exists(lrcFilePath()) -> DocumentStatus.DONE
             FileSystem.SYSTEM.exists(mixedFilePath()) -> DocumentStatus.TRANSCRIBING
+            (FileSystem.SYSTEM.metadataOrNull(screenFilePath())?.size ?: 0L) == 44L -> DocumentStatus.ERROR
             FileSystem.SYSTEM.exists(micFilePath()) && FileSystem.SYSTEM.exists(screenFilePath()) -> DocumentStatus.MIXING
             FileSystem.SYSTEM.exists(micFilePath()) || FileSystem.SYSTEM.exists(screenFilePath()) -> DocumentStatus.RECORDING
             else -> DocumentStatus.ERROR
