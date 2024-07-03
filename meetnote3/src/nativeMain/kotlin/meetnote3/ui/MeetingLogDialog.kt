@@ -2,6 +2,7 @@ package meetnote3.ui
 
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
+import meetnote3.model.DocumentStatus
 import okio.FileSystem
 import okio.IOException
 import okio.Path
@@ -87,11 +88,12 @@ class MeetingLogDialog :
             .sortedByDescending { it.shortName() }
             .take(50)
             .map {
-                it.basedir.name + " " + it.duration() + " " + if (FileSystem.SYSTEM.exists(it.summaryFilePath())) {
+                val status = it.status()
+                it.basedir.name + " " + if (status == DocumentStatus.DONE) {
                     "✅"
                 } else {
-                    "❌"
-                }
+                    status
+                } + (it.duration() ?: "")
             }
         val notesFilesDropdown = NSPopUpButton(NSMakeRect(10.0, 680.0, 300.0, 30.0), false).apply {
             addItemsWithTitles(notesItems)

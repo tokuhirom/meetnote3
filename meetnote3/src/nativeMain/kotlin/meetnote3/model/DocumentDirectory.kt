@@ -18,6 +18,14 @@ import kotlinx.datetime.format.DayOfWeekNames
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 
+enum class DocumentStatus {
+    MIXING,
+    TRANSCRIBING,
+    DONE,
+    ERROR,
+    RECORDING,
+}
+
 fun generateTimestamp(): String {
     val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
     return now.format(dateTimeFormatter)
@@ -78,6 +86,15 @@ data class DocumentDirectory(
             }
         } else {
             null
+        }
+
+    fun status(): DocumentStatus =
+        when {
+            FileSystem.SYSTEM.exists(lrcFilePath()) -> DocumentStatus.DONE
+            FileSystem.SYSTEM.exists(mixedFilePath()) -> DocumentStatus.TRANSCRIBING
+            FileSystem.SYSTEM.exists(micFilePath()) && FileSystem.SYSTEM.exists(screenFilePath()) -> DocumentStatus.MIXING
+            FileSystem.SYSTEM.exists(micFilePath()) || FileSystem.SYSTEM.exists(screenFilePath()) -> DocumentStatus.RECORDING
+            else -> DocumentStatus.ERROR
         }
 
     companion object {
