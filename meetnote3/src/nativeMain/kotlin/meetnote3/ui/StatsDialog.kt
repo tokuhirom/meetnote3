@@ -144,7 +144,8 @@ class StatsDialog(
 
     private fun startTimer() {
         timer = NSTimer.scheduledTimerWithTimeInterval(
-            5.0, // Update every 5 seconds
+            // Update every 5 seconds
+            5.0,
             repeats = true,
             block = { updateLog() },
         )
