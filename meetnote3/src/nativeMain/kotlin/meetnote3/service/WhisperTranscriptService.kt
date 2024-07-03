@@ -9,26 +9,22 @@ import meetnote3.info
 import meetnote3.model.DocumentDirectory
 import meetnote3.utils.ProcessBuilder
 import meetnote3.utils.getHomeDirectory
+import meetnote3.workers.SummarizingWorker
 import okio.FileSystem
 import okio.Path
 
 import kotlin.time.Duration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 
 class WhisperTranscriptService(
+    private val summarizingWorker: SummarizingWorker,
     private val modelName: String = "medium",
     private val language: String = "japanese",
     private val whisperCppTimeout: Duration = Duration.parse("1h"),
     private val ffmpegTimeout: Duration = Duration.parse("1h"),
 ) {
-    private val mutableTranscriptionCompletionFlow = MutableSharedFlow<DocumentDirectory>()
-    val readyForSummarizeFlow: SharedFlow<DocumentDirectory> = mutableTranscriptionCompletionFlow.asSharedFlow()
-
     private val client = HttpClient(Darwin) {
     }
 
@@ -46,7 +42,7 @@ class WhisperTranscriptService(
             // Run whisper-cpp
             runWhisperCpp(modelFileName, waveFilePath, documentDirectory)
 
-            mutableTranscriptionCompletionFlow.emit(documentDirectory)
+            summarizingWorker.emit(documentDirectory)
         } finally {
             info("Clean up temporary wave file: file://$waveFilePath")
             FileSystem.SYSTEM.delete(waveFilePath)
