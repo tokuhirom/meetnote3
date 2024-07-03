@@ -57,6 +57,7 @@ class MeetingLogDialog :
     private lateinit var notesBodyTextView: NSTextView
     private lateinit var lrcBodyTextView: NSTextView
     private lateinit var imagesContainerView: NSView
+    private lateinit var documentDirectory: DocumentDirectory
 
     private val instanceHolder = mutableListOf<NSWindow>()
 
@@ -114,7 +115,6 @@ class MeetingLogDialog :
         }
 
         contentView?.addSubview(notesFilesDropdown)
-        contentView?.addSubview(buildAudioPlayer())
         contentView?.addSubview(
             NSScrollView().apply {
                 translatesAutoresizingMaskIntoConstraints = false
@@ -138,6 +138,7 @@ class MeetingLogDialog :
                 hasVerticalScroller = true
             },
         )
+        contentView?.addSubview(buildAudioPlayer())
 
         instanceHolder.add(window)
         return window
@@ -147,34 +148,39 @@ class MeetingLogDialog :
     private fun buildAudioPlayer(): NSView {
         val audioPlayer = AudioPlayer()
 
-        val containerView = NSView(NSMakeRect(0.0, 0.0, 400.0, 300.0))
+        val containerView = NSView(NSMakeRect(540.0, 500.0, 400.0, 200.0))
 
-        val playButton = NSButton(NSMakeRect(50.0, 100.0, 80.0, 30.0))
+        val playButton = NSButton(NSMakeRect(50.0, 50.0, 80.0, 30.0))
         playButton.title = "Play"
         playButton.setTarget {
-            audioPlayer.play("/path/to/your/audiofile.m4a")
+            if (FileSystem.SYSTEM.exists(documentDirectory.mixedFilePath())) {
+                info("Play audio file: ${documentDirectory.mixedFilePath()}")
+                audioPlayer.play(documentDirectory.mixedFilePath().toString())
+            } else {
+                info("Audio file not found: ${documentDirectory.mixedFilePath()}")
+            }
         }
 
-        val pauseButton = NSButton(NSMakeRect(150.0, 100.0, 80.0, 30.0))
+        val pauseButton = NSButton(NSMakeRect(150.0, 50.0, 80.0, 30.0))
         pauseButton.title = "Pause"
         pauseButton.setTarget {
             audioPlayer.pause()
         }
 
-        val stopButton = NSButton(NSMakeRect(250.0, 100.0, 80.0, 30.0))
+        val stopButton = NSButton(NSMakeRect(250.0, 50.0, 80.0, 30.0))
         stopButton.title = "Stop"
         stopButton.setTarget {
             audioPlayer.stop()
         }
 
-        val currentTimeLabel = NSTextField(NSMakeRect(150.0, 150.0, 100.0, 30.0))
+        val currentTimeLabel = NSTextField(NSMakeRect(150.0, 100.0, 100.0, 30.0))
         currentTimeLabel.stringValue = "00:00"
         currentTimeLabel.setEditable(false)
         currentTimeLabel.setBezeled(true)
         currentTimeLabel.alignment = NSTextAlignmentCenter
         AudioPlayer.currentTimeLabel = currentTimeLabel
 
-        val seekButton = NSButton(NSMakeRect(150.0, 200.0, 100.0, 30.0))
+        val seekButton = NSButton(NSMakeRect(150.0, 150.0, 100.0, 30.0))
         seekButton.title = "Seek to 10:00"
         seekButton.setTarget {
             audioPlayer.seekToTime(600.0) // 10分 = 600秒
@@ -215,6 +221,7 @@ class MeetingLogDialog :
     private fun setDocument(name: String) {
         val document = DocumentDirectory.find(extractNameFromTitle(name))
         if (document != null) {
+            this.documentDirectory = document
             imagesContainerView.subviews.forEach {
                 if (it is NSView) {
                     it.removeFromSuperview()
