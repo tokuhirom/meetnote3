@@ -13,6 +13,10 @@ import platform.AppKit.NSWindowDelegateProtocol
 import platform.AppKit.NSWindowStyleMaskClosable
 import platform.AppKit.NSWindowStyleMaskResizable
 import platform.AppKit.NSWindowStyleMaskTitled
+import platform.AppKit.bottomAnchor
+import platform.AppKit.leadingAnchor
+import platform.AppKit.topAnchor
+import platform.AppKit.trailingAnchor
 import platform.AppKit.translatesAutoresizingMaskIntoConstraints
 import platform.Foundation.NSMakeRect
 import platform.Foundation.NSNotification
@@ -59,19 +63,26 @@ class StatsDialog(
         window.title = "System Log Viewer"
         window.delegate = this
 
-        val contentView = window.contentView
-        logBodyTextView = NSTextView(NSMakeRect(10.0, 10.0, 460.0, 300.0)).apply {
+        val contentView = window.contentView!!
+        logBodyTextView = NSTextView().apply {
             setEditable(false)
         }
         updateLog()
 
-        contentView?.addSubview(
-            NSScrollView().apply {
-                translatesAutoresizingMaskIntoConstraints = false
-                documentView = logBodyTextView
-                setFrame(NSMakeRect(10.0, 10.0, 460.0, 300.0))
-            },
-        )
+        val scrollView = NSScrollView().apply {
+            translatesAutoresizingMaskIntoConstraints = false
+            documentView = logBodyTextView
+            hasVerticalScroller = true
+            hasHorizontalScroller = true
+        }
+
+        contentView.addSubview(scrollView)
+
+        // Add constraints to make the scroll view adjust to the window size
+        scrollView.leadingAnchor.constraintEqualToAnchor(contentView.leadingAnchor).active = true
+        scrollView.trailingAnchor.constraintEqualToAnchor(contentView.trailingAnchor).active = true
+        scrollView.topAnchor.constraintEqualToAnchor(contentView.topAnchor).active = true
+        scrollView.bottomAnchor.constraintEqualToAnchor(contentView.bottomAnchor).active = true
 
         instanceHolder.add(window)
         return window
@@ -100,16 +111,16 @@ class StatsDialog(
                     append(it.shortName())
                 }
                 append("\n\n")
-                append("# Transcribing\n")
+                append("# Transcribing\n\n")
                 transcriptWorker.processLogs().forEach {
                     append(it.documentDirectory.basedir)
                     append("\n")
                     if (it.endAt != null) {
-                        append("Done(")
+                        append("  Done(")
                         append(((it.endAt!! - it.startAt) / 1000).toString())
                         append("s)")
                     } else {
-                        append("Processing(")
+                        append("  Processing(")
                         append(((Clock.System.now().toEpochMilliseconds() - it.startAt) / 1000).toString())
                         append("s) ")
                         append(
@@ -117,7 +128,7 @@ class StatsDialog(
                                 .metadataOrNull(it.documentDirectory.mixedFilePath())
                                 ?.size
                                 ?.let { size ->
-                                    (size / 1024.0 / 1024).toString() + "MiB"
+                                    (size / 1024 / 1024).toString() + "MiB"
                                 }.toString(),
                         )
                     }
