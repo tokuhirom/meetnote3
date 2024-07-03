@@ -4,6 +4,7 @@ import meetnote3.info
 import meetnote3.utils.getChildProcs
 import meetnote3.workers.SummarizingWorker
 import meetnote3.workers.TranscriptWorker
+import okio.FileSystem
 import platform.AppKit.NSBackingStoreBuffered
 import platform.AppKit.NSScrollView
 import platform.AppKit.NSTextView
@@ -101,8 +102,8 @@ class StatsDialog(
                 append("\n\n")
                 append("# Transcribing\n")
                 transcriptWorker.processLogs().forEach {
-                    append(it.documentDirectory.shortName())
-                    append(" ")
+                    append(it.documentDirectory.basedir)
+                    append("\n")
                     if (it.endAt != null) {
                         append("Done(")
                         append(((it.endAt!! - it.startAt) / 1000).toString())
@@ -110,13 +111,21 @@ class StatsDialog(
                     } else {
                         append("Processing(")
                         append(((Clock.System.now().toEpochMilliseconds() - it.startAt) / 1000).toString())
-                        append("s)")
+                        append("s) ")
+                        append(
+                            FileSystem.SYSTEM
+                                .metadataOrNull(it.documentDirectory.mixedFilePath())
+                                ?.size
+                                ?.let { size ->
+                                    (size / 1024.0 / 1024).toString() + "MiB"
+                                }.toString(),
+                        )
                     }
                     if (it.error != null) {
                         append(" ")
                         append(it.error)
                     }
-                    append("\n")
+                    append("\n\n")
                 }
                 append("\n")
             }.toString()
