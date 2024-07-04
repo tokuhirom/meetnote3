@@ -51,7 +51,7 @@ fun info(message: String) {
     }
 }
 
-fun warning(message: String) {
+fun warn(message: String) {
     if (logLevel <= LOG_LEVEL_WARNING) {
         eprintln("${timestamp()} [WARNING] $message")
     }

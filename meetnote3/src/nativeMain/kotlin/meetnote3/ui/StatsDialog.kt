@@ -1,6 +1,7 @@
 package meetnote3.ui
 
 import meetnote3.info
+import meetnote3.service.RecoveringService
 import meetnote3.utils.getChildProcs
 import meetnote3.workers.SummarizingWorker
 import meetnote3.workers.TranscriptWorker
@@ -31,6 +32,7 @@ import kotlinx.datetime.toLocalDateTime
 class StatsDialog(
     private val summarizingWorker: SummarizingWorker,
     private val transcriptWorker: TranscriptWorker,
+    private val recoveringService: RecoveringService,
 ) : NSObject(),
     NSWindowDelegateProtocol {
     private var window: NSWindow? = null
@@ -112,35 +114,68 @@ class StatsDialog(
                 }
                 append("\n\n")
                 append("# Transcribing\n\n")
-                transcriptWorker.processLogs().forEach {
-                    append(it.documentDirectory.basedir)
-                    append("\n")
-                    if (it.endAt != null) {
-                        append("  Done(")
-                        append(((it.endAt!! - it.startAt) / 1000).toString())
-                        append("s)")
-                    } else {
-                        append("  Processing(")
-                        append(((Clock.System.now().toEpochMilliseconds() - it.startAt) / 1000).toString())
-                        append("s) ")
-                        append(
-                            FileSystem.SYSTEM
-                                .metadataOrNull(it.documentDirectory.mixedFilePath())
-                                ?.size
-                                ?.let { size ->
-                                    (size / 1024 / 1024).toString() + "MiB"
-                                }.toString(),
-                        )
-                    }
-                    if (it.error != null) {
-                        append(" ")
-                        append(it.error)
-                    }
-                    append("\n\n")
-                }
-                append("\n\n  Waiting count: ${transcriptWorker.waitingCount()}\n")
+                renderTranscribeLogs(this)
                 append("\n")
+                append("# Recovery process\n\n")
+                renderRecoveryProcess(this)
             }.toString()
+    }
+
+    private fun renderRecoveryProcess(stringBuilder: StringBuilder) {
+        stringBuilder.apply {
+            append("Targets: ${recoveringService.recoveryLogs().size}\n")
+
+            recoveringService.recoveryLogs().forEach { log ->
+                append(log.documentDirectory.basedir.toString())
+                append(" ")
+                append(log.documentDirectory.status().toString())
+                if (log == recoveringService.currentTarget()) {
+                    append(" ⏳")
+                }
+                if (log.startAtSeconds != null && log.endAtSeconds != null) {
+                    append(" Done(")
+                    append((log.endAtSeconds!! - log.startAtSeconds!!).toString())
+                    append("s)")
+                } else if (log.startAtSeconds != null) {
+                    append(" Processing(")
+                    append((Clock.System.now().epochSeconds - log.startAtSeconds!!).toString())
+                    append("s)")
+                }
+                append("\n")
+            }
+        }
+    }
+
+    private fun renderTranscribeLogs(builder: StringBuilder) {
+        builder.apply {
+            transcriptWorker.processLogs().forEach {
+                append(it.documentDirectory.basedir)
+                append("\n")
+                if (it.endAt != null) {
+                    append("  Done(")
+                    append(((it.endAt!! - it.startAt) / 1000).toString())
+                    append("s)")
+                } else {
+                    append("  Processing(")
+                    append(((Clock.System.now().toEpochMilliseconds() - it.startAt) / 1000).toString())
+                    append("s) ")
+                    append(
+                        FileSystem.SYSTEM
+                            .metadataOrNull(it.documentDirectory.mixedFilePath())
+                            ?.size
+                            ?.let { size ->
+                                (size / 1024 / 1024).toString() + "MiB"
+                            }.toString(),
+                    )
+                }
+                if (it.error != null) {
+                    append(" ")
+                    append(it.error)
+                }
+                append("\n\n")
+            }
+            append("\n\n  Waiting count: ${transcriptWorker.waitingCount()}\n")
+        }
     }
 
     private fun startTimer() {

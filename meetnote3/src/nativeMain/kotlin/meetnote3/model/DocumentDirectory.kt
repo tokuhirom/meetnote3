@@ -19,8 +19,8 @@ import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 
 enum class DocumentStatus {
-    MIXING,
-    TRANSCRIBING,
+    WAITING_MIX,
+    WAITING_TRANSCRIBE,
     DONE,
     ERROR,
     RECORDING,
@@ -58,12 +58,21 @@ data class DocumentDirectory(
 
     fun summarizerFilePath() = basedir.resolve("summarizer.py")
 
+    fun recoveryErrorPath() = basedir.resolve("recovery_error.txt")
+
+    fun didRecoveryError(): Boolean = FileSystem.SYSTEM.exists(recoveryErrorPath())
+
+    fun writeRecoveryError(message: String) {
+        info("Writing recovery error: $message(${recoveryErrorPath()})")
+        FileSystem.SYSTEM.write(recoveryErrorPath(), false) {
+            writeUtf8(message)
+        }
+    }
+
     fun shortName(): String =
         dateTimeFormatter
             .parse(basedir.name)
             .format(shortNameFormatter)
-
-    fun isBrokenScreenAudio(): Boolean = (FileSystem.SYSTEM.metadataOrNull(screenFilePath())?.size ?: 0L) == 44L
 
     fun createImageFileName(): Path {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
@@ -93,9 +102,9 @@ data class DocumentDirectory(
     fun status(): DocumentStatus =
         when {
             FileSystem.SYSTEM.exists(lrcFilePath()) -> DocumentStatus.DONE
-            FileSystem.SYSTEM.exists(mixedFilePath()) -> DocumentStatus.TRANSCRIBING
-            isBrokenScreenAudio() -> DocumentStatus.ERROR
-            FileSystem.SYSTEM.exists(micFilePath()) && FileSystem.SYSTEM.exists(screenFilePath()) -> DocumentStatus.MIXING
+            FileSystem.SYSTEM.exists(mixedFilePath()) -> DocumentStatus.WAITING_TRANSCRIBE
+            didRecoveryError() -> DocumentStatus.ERROR
+            FileSystem.SYSTEM.exists(micFilePath()) && FileSystem.SYSTEM.exists(screenFilePath()) -> DocumentStatus.WAITING_MIX
             FileSystem.SYSTEM.exists(micFilePath()) || FileSystem.SYSTEM.exists(screenFilePath()) -> DocumentStatus.RECORDING
             else -> DocumentStatus.ERROR
         }

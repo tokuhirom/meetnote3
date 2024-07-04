@@ -5,7 +5,7 @@ import platform.AVFoundation.AVAssetExportPresetAppleM4A
 import platform.AVFoundation.AVAssetExportSession
 import platform.AVFoundation.AVAssetExportSessionStatus
 import platform.AVFoundation.AVAssetExportSessionStatusCancelled
-import platform.AVFoundation.AVAssetExportSessionStatusCompleted
+import platform.AVFoundation.AVAssetExportSessionStatusCompleted as AVAssetExportSessionStatusCompleted1
 import platform.AVFoundation.AVAssetExportSessionStatusFailed
 import platform.AVFoundation.AVAssetTrack
 import platform.AVFoundation.AVFileType
@@ -19,7 +19,6 @@ import platform.CoreMedia.CMTimeMake
 import platform.CoreMedia.CMTimeRangeMake
 import platform.CoreMedia.kCMPersistentTrackID_Invalid
 import platform.Foundation.NSURL
-import platform.posix.warn
 
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -60,23 +59,29 @@ suspend fun mix(
     exporter.outputURL = outputFileURL
     exporter.outputFileType = outputFileType
 
+    info("Starting export asynchronously...")
     when (val status = exporter.exportAsynchronously()) {
-        AVAssetExportSessionStatusCompleted -> {
+        AVAssetExportSessionStatusCompleted1 -> {
             info("Mixing completed successfully!")
         }
 
         AVAssetExportSessionStatusFailed, AVAssetExportSessionStatusCancelled -> {
-            warn(
+            throw MixError(
                 "Failed to mix audio files: ${exporter.error?.localizedDescription}: $outputFileURL" +
                     " $inputFileNames",
             )
         }
 
         else -> {
-            warn("Unknown export status: $status")
+            throw MixError("Unknown export status: $status $outputFileURL $inputFileNames")
         }
     }
+    info("Finished export process.")
 }
+
+class MixError(
+    message: String,
+) : Exception(message)
 
 suspend fun AVAssetExportSession.exportAsynchronously(): AVAssetExportSessionStatus =
     suspendCoroutine { cont ->
