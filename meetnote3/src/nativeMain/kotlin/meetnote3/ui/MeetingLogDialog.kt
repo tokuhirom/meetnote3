@@ -13,6 +13,8 @@ import platform.AppKit.NSImageScaleProportionallyUpOrDown
 import platform.AppKit.NSImageView
 import platform.AppKit.NSPopUpButton
 import platform.AppKit.NSScrollView
+import platform.AppKit.NSTableColumn
+import platform.AppKit.NSTableView
 import platform.AppKit.NSTextAlignmentCenter
 import platform.AppKit.NSTextField
 import platform.AppKit.NSTextView
@@ -62,7 +64,8 @@ class MeetingLogDialog :
     private lateinit var documentDirectory: DocumentDirectory
     private val audioPlayer = AudioPlayer()
     private var reloadTimer: NSTimer? = null
-    private var notesFilesDropdown: NSPopUpButton? = null
+    private var fileTableView: NSTableView? = null
+    private val fileTableViewDelegate = FileTableViewDelegate(this)
 
     private val instanceHolder = mutableListOf<NSWindow>()
 
@@ -86,13 +89,23 @@ class MeetingLogDialog :
         window.delegate = this
 
         val contentView = window.contentView
-        val notesItems = loadNotesItems()
-        notesFilesDropdown = NSPopUpButton(NSMakeRect(10.0, 680.0, 300.0, 30.0), false).apply {
-            addItemsWithTitles(notesItems)
-            setEnabled(true)
-            setTarget(this@MeetingLogDialog)
-            setAction(NSSelectorFromString("notesFileSelected:"))
+
+        fileTableView = NSTableView().apply {
+            val column = NSTableColumn("Files").apply {
+                width = 300.0
+            }
+            addTableColumn(column)
+            setDelegate(fileTableViewDelegate)
+            setDataSource(fileTableViewDelegate)
         }
+
+        val scrollView = NSScrollView().apply {
+            documentView = fileTableView
+            setFrame(NSMakeRect(10.0, 10.0, 300.0, 660.0))
+            hasVerticalScroller = true
+        }
+
+        contentView?.addSubview(scrollView)
 
         notesBodyTextView = NSTextView(NSMakeRect(320.0, 10.0, 630.0, 320.0)).apply {
             setEditable(false)
@@ -106,11 +119,6 @@ class MeetingLogDialog :
             setAutoresizingMask(NSViewWidthSizable or NSViewHeightSizable)
         }
 
-        notesItems.firstOrNull()?.let {
-            setDocument(it)
-        }
-
-        contentView?.addSubview(notesFilesDropdown!!)
         contentView?.addSubview(
             NSScrollView().apply {
                 translatesAutoresizingMaskIntoConstraints = false
@@ -146,8 +154,8 @@ class MeetingLogDialog :
         return window
     }
 
-    private fun loadNotesItems(): List<String> =
-        DocumentDirectory
+    private fun loadNotesItems(): List<String> {
+        val notesItems = DocumentDirectory
             .listAll()
             .sortedByDescending { it.shortName() }
             .take(50)
@@ -159,35 +167,16 @@ class MeetingLogDialog :
                     status
                 } + (it.duration() ?: "")
             }
+        fileTableViewDelegate.updateFiles(notesItems)
+        fileTableView?.reloadData()
+        return notesItems
+    }
 
     private fun reloadNotesItems() {
-        val currentSelection = notesFilesDropdown!!.titleOfSelectedItem
-        val itemTitles = notesFilesDropdown!!.itemTitles
-        val existingId2title = itemTitles
-            .map {
-                it!! as String
-            }.associateBy { s ->
-                extractNameFromTitle(s)
-            }
+        // TODO: use inotify to detect file change.
         val newItems = loadNotesItems()
-
-        newItems.forEach { newItem ->
-            val title = existingId2title[extractNameFromTitle(newItem)]
-            if (title != null) {
-                // Check if the item exists. Verify if the title matches.
-                if (title != newItem) {
-                    // The titles differ, so remove the item and insert the new item at the beginning.
-                    notesFilesDropdown!!.removeItemWithTitle(title)
-                    notesFilesDropdown?.insertItemWithTitle(newItem, atIndex = 0)
-                    if (currentSelection == title) {
-                        notesFilesDropdown?.selectItemWithTitle(newItem)
-                    }
-                }
-            } else {
-                // The item does not exist, so add it.
-                notesFilesDropdown?.insertItemWithTitle(newItem, 0)
-            }
-        }
+        fileTableViewDelegate.updateFiles(newItems)
+        fileTableView?.reloadData()
     }
 
     @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
@@ -268,7 +257,7 @@ class MeetingLogDialog :
         }
     }
 
-    private fun setDocument(name: String) {
+    fun setDocument(name: String) {
         val document = DocumentDirectory.find(extractNameFromTitle(name))
         if (document != null) {
             audioPlayer.pause()
