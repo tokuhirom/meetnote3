@@ -86,18 +86,7 @@ class MeetingLogDialog :
         window.delegate = this
 
         val contentView = window.contentView
-        val notesItems = DocumentDirectory
-            .listAll()
-            .sortedByDescending { it.shortName() }
-            .take(50)
-            .map {
-                val status = it.status()
-                it.basedir.name + " " + if (status == DocumentStatus.DONE) {
-                    "✅"
-                } else {
-                    status
-                } + (it.duration() ?: "")
-            }
+        val notesItems = loadNotesItems()
         notesFilesDropdown = NSPopUpButton(NSMakeRect(10.0, 680.0, 300.0, 30.0), false).apply {
             addItemsWithTitles(notesItems)
             setEnabled(true)
