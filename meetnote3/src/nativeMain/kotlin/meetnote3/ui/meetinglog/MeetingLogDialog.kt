@@ -1,4 +1,4 @@
-package meetnote3.ui
+package meetnote3.ui.meetinglog
 
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
@@ -171,7 +171,7 @@ class MeetingLogDialog :
             .take(50)
             .map {
                 val status = it.status()
-                val title = it.shortName() + "  " + if (status == DocumentStatus.DONE) {
+                val title = it.shortName() + "\n" + if (status == DocumentStatus.DONE) {
                     "✅"
                 } else {
                     status
