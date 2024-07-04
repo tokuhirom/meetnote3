@@ -59,6 +59,26 @@ class MeetingLogDialog :
 
     private val instanceHolder = mutableListOf<NSWindow>()
 
+    @OptIn(BetaInteropApi::class)
+    private val audioPlayerController = object : NSObject() {
+        @ObjCAction
+        fun onPlayButtonClicked() {
+            info("Start player...")
+            if (FileSystem.SYSTEM.exists(documentDirectory.mixedFilePath())) {
+                info("Play audio file: ${documentDirectory.mixedFilePath()}")
+                audioPlayer.play(documentDirectory.mixedFilePath().toString())
+            } else {
+                info("Audio file not found: ${documentDirectory.mixedFilePath()}")
+            }
+        }
+
+        @ObjCAction
+        fun onPauseButtonClicked() {
+            info("Pause player...")
+            audioPlayer.pause()
+        }
+    }
+
     fun show() {
         if (window == null) {
             window = createWindow()
@@ -177,25 +197,6 @@ class MeetingLogDialog :
     @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
     private fun buildAudioPlayer(): NSView {
         val containerView = NSView(NSMakeRect(320.0, 680.0, 630.0, 40.0))
-
-        val audioPlayerController = object : NSObject() {
-            @ObjCAction
-            fun onPlayButtonClicked() {
-                info("Start player...")
-                if (FileSystem.SYSTEM.exists(documentDirectory.mixedFilePath())) {
-                    info("Play audio file: ${documentDirectory.mixedFilePath()}")
-                    audioPlayer.play(documentDirectory.mixedFilePath().toString())
-                } else {
-                    info("Audio file not found: ${documentDirectory.mixedFilePath()}")
-                }
-            }
-
-            @ObjCAction
-            fun onPauseButtonClicked() {
-                info("Pause player...")
-                audioPlayer.pause()
-            }
-        }
 
         val playButton = NSButton(NSMakeRect(10.0, 10.0, 80.0, 30.0))
         playButton.title = "Play"
