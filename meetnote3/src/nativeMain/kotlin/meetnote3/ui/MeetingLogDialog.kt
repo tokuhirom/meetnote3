@@ -36,7 +36,13 @@ import platform.Foundation.NSSize
 import platform.Foundation.NSTimer
 import platform.Foundation.create
 import platform.darwin.NSObject
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_get_main_queue
+import platform.darwin.dispatch_queue_create
+import platform.darwin.dispatch_queue_t
+import platform.darwin.dispatch_sync
 
+import kotlin.properties.Delegates
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -66,6 +72,8 @@ class MeetingLogDialog :
     private var reloadTimer: NSTimer? = null
     private var fileTableView: NSTableView? = null
     private val fileTableViewDelegate = FileTableViewDelegate(this)
+    private val backgroundQueue: dispatch_queue_t =
+        dispatch_queue_create("com.meetnote3.imageLoading", null)
 
     private val instanceHolder = mutableListOf<NSWindow>()
 
@@ -271,11 +279,7 @@ class MeetingLogDialog :
                     it.removeFromSuperview()
                 }
             }
-            var offset = 0.0
-            document.listImages().forEach { path: Path ->
-                info("Image path: $path")
-                offset += displayImage(path, offset)
-            }
+            showImages(document)
 
             notesBodyTextView.string = readSummaryFile(document)
             lrcBodyTextView.string = readLrcFile(document)
@@ -286,6 +290,16 @@ class MeetingLogDialog :
                 if (it is NSView) {
                     it.removeFromSuperview()
                 }
+            }
+        }
+    }
+
+    private fun showImages(document: DocumentDirectory) {
+        var offset = 0.0
+        dispatch_async(backgroundQueue) {
+            document.listImages().forEach { path: Path ->
+                info("Image path: $path")
+                offset += displayImage(path, offset)
             }
         }
     }
@@ -306,19 +320,24 @@ class MeetingLogDialog :
                 .useContents {
                     (width / this.width) * this.height
                 }.toDouble()
-            val imageView = NSImageView(
-                CGRectMake(
-                    x = 0.0,
-                    y = offset,
-                    width = 300.0,
-                    height = height,
-                ),
-            ).apply {
-                image = nsImage
-                imageScaling = NSImageScaleProportionallyUpOrDown
+
+            var imageHeight by Delegates.notNull<Double>()
+            dispatch_sync(dispatch_get_main_queue()) {
+                val imageView = NSImageView(
+                    CGRectMake(
+                        x = 0.0,
+                        y = offset,
+                        width = 300.0,
+                        height = height,
+                    ),
+                ).apply {
+                    image = nsImage
+                    imageScaling = NSImageScaleProportionallyUpOrDown
+                }
+                imagesContainerView.addSubview(imageView)
+                imageHeight = height
             }
-            imagesContainerView.addSubview(imageView)
-            return height
+            return imageHeight
         } catch (e: IOException) {
             info("Cannot read image file(${e.message}): $path")
             return 0.0
