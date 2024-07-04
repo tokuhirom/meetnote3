@@ -77,7 +77,7 @@ class MeetingLogDialog :
     @OptIn(ExperimentalForeignApi::class)
     private fun createWindow(): NSWindow {
         val window = NSWindow(
-            contentRect = NSMakeRect(0.0, 0.0, 1260.0, 720.0), // Increased width by 300px
+            contentRect = NSMakeRect(0.0, 0.0, 1260.0, 720.0),
             styleMask = NSWindowStyleMaskTitled or NSWindowStyleMaskClosable or NSWindowStyleMaskResizable,
             backing = NSBackingStoreBuffered,
             defer = false,
