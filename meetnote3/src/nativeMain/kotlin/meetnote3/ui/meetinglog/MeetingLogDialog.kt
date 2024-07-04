@@ -5,12 +5,8 @@ import meetnote3.model.DocumentDirectory
 import meetnote3.model.DocumentStatus
 import okio.FileSystem
 import okio.IOException
-import okio.Path
 import platform.AppKit.NSBackingStoreBuffered
 import platform.AppKit.NSButton
-import platform.AppKit.NSImage
-import platform.AppKit.NSImageScaleProportionallyUpOrDown
-import platform.AppKit.NSImageView
 import platform.AppKit.NSScrollView
 import platform.AppKit.NSTableColumn
 import platform.AppKit.NSTableView
@@ -18,36 +14,26 @@ import platform.AppKit.NSTextAlignmentCenter
 import platform.AppKit.NSTextField
 import platform.AppKit.NSTextView
 import platform.AppKit.NSView
-import platform.AppKit.NSViewHeightSizable
-import platform.AppKit.NSViewWidthSizable
 import platform.AppKit.NSWindow
 import platform.AppKit.NSWindowDelegateProtocol
 import platform.AppKit.NSWindowStyleMaskClosable
 import platform.AppKit.NSWindowStyleMaskResizable
 import platform.AppKit.NSWindowStyleMaskTitled
 import platform.AppKit.translatesAutoresizingMaskIntoConstraints
-import platform.CoreGraphics.CGRectMake
 import platform.Foundation.NSData
 import platform.Foundation.NSMakeRect
 import platform.Foundation.NSNotification
 import platform.Foundation.NSSelectorFromString
-import platform.Foundation.NSSize
 import platform.Foundation.NSTimer
 import platform.Foundation.create
 import platform.darwin.NSObject
-import platform.darwin.dispatch_async
-import platform.darwin.dispatch_get_main_queue
 import platform.darwin.dispatch_queue_create
 import platform.darwin.dispatch_queue_t
-import platform.darwin.dispatch_sync
 
-import kotlin.properties.Delegates
 import kotlinx.cinterop.BetaInteropApi
-import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.addressOf
-import kotlinx.cinterop.useContents
 import kotlinx.cinterop.usePinned
 
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
@@ -65,12 +51,13 @@ class MeetingLogDialog :
     private var window: NSWindow? = null
     private lateinit var notesBodyTextView: NSTextView
     private lateinit var lrcBodyTextView: NSTextView
-    private lateinit var imagesContainerView: NSView
+    private lateinit var imageTableView: NSTableView
     private lateinit var documentDirectory: DocumentDirectory
     private val audioPlayer = AudioPlayer()
     private var reloadTimer: NSTimer? = null
     private var fileTableView: NSTableView? = null
     private val fileTableViewDelegate = FileTableViewDelegate(this)
+    private val imageTableViewDelegate = ImageTableViewDelegate()
     private val backgroundQueue: dispatch_queue_t =
         dispatch_queue_create("com.meetnote3.imageLoading", null)
 
@@ -123,9 +110,20 @@ class MeetingLogDialog :
             setEditable(false)
         }
 
-        imagesContainerView = NSView(NSMakeRect(960.0, 10.0, 300.0, 660.0)).apply {
-            // Positioned to the right
-            setAutoresizingMask(NSViewWidthSizable or NSViewHeightSizable)
+        imageTableView = NSTableView().apply {
+            val column = NSTableColumn("Images").apply {
+                width = 300.0
+                setEditable(false)
+                setHeaderView(null)
+            }
+            addTableColumn(column)
+            setDelegate(imageTableViewDelegate)
+            setDataSource(imageTableViewDelegate)
+        }
+        val imageScrollView = NSScrollView().apply {
+            documentView = imageTableView
+            setFrame(NSMakeRect(960.0, 10.0, 300.0, 660.0)) // Positioned to the right
+            hasVerticalScroller = true
         }
 
         contentView?.addSubview(
@@ -142,15 +140,7 @@ class MeetingLogDialog :
                 setFrame(NSMakeRect(320.0, 10.0, 630.0, 320.0))
             },
         )
-        contentView?.addSubview(
-            NSScrollView().apply {
-                translatesAutoresizingMaskIntoConstraints = false
-                documentView = imagesContainerView
-                setFrame(NSMakeRect(960.0, 10.0, 300.0, 660.0)) // Positioned to the right
-                hasHorizontalScroller = false
-                hasVerticalScroller = true
-            },
-        )
+        contentView?.addSubview(imageScrollView)
         contentView?.addSubview(buildAudioPlayer())
 
         reloadTimer = NSTimer.scheduledTimerWithTimeInterval(
@@ -253,65 +243,16 @@ class MeetingLogDialog :
         audioPlayer.pause()
 
         this.documentDirectory = document
-        imagesContainerView.subviews.forEach {
-            if (it is NSView) {
-                it.removeFromSuperview()
-            }
-        }
-        showImages(document)
+        reloadImages(document)
 
         notesBodyTextView.string = readSummaryFile(document)
         lrcBodyTextView.string = readLrcFile(document)
     }
 
-    private fun showImages(document: DocumentDirectory) {
-        var offset = 0.0
-        dispatch_async(backgroundQueue) {
-            document.listImages().forEach { path: Path ->
-                info("Image path: $path")
-                offset += displayImage(path, offset)
-            }
-        }
-    }
-
-    @OptIn(ExperimentalForeignApi::class)
-    private fun displayImage(
-        path: Path,
-        offset: Double,
-    ): Double {
-        try {
-            val imageData = FileSystem.SYSTEM.read(path) {
-                readByteArray()
-            }
-            val nsImage = NSImage(data = imageData.toNSData())
-            val originalSize: CValue<NSSize> = nsImage.size
-            val width = 300.0
-            val height = originalSize
-                .useContents {
-                    (width / this.width) * this.height
-                }.toDouble()
-
-            var imageHeight by Delegates.notNull<Double>()
-            dispatch_sync(dispatch_get_main_queue()) {
-                val imageView = NSImageView(
-                    CGRectMake(
-                        x = 0.0,
-                        y = offset,
-                        width = 300.0,
-                        height = height,
-                    ),
-                ).apply {
-                    image = nsImage
-                    imageScaling = NSImageScaleProportionallyUpOrDown
-                }
-                imagesContainerView.addSubview(imageView)
-                imageHeight = height
-            }
-            return imageHeight
-        } catch (e: IOException) {
-            info("Cannot read image file(${e.message}): $path")
-            return 0.0
-        }
+    private fun reloadImages(document: DocumentDirectory) {
+        val imageItems = document.listImages().map { ImageTableItem(it) }
+        imageTableViewDelegate.updateImages(imageItems)
+        imageTableView.reloadData()
     }
 
     private fun readSummaryFile(document: DocumentDirectory): String {
