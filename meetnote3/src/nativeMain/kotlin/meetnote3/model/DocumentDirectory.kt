@@ -63,6 +63,7 @@ data class DocumentDirectory(
     fun didRecoveryError(): Boolean = FileSystem.SYSTEM.exists(recoveryErrorPath())
 
     fun writeRecoveryError(message: String) {
+        info("Writing recovery error: $message(${recoveryErrorPath()})")
         FileSystem.SYSTEM.write(recoveryErrorPath(), false) {
             writeUtf8(message)
         }

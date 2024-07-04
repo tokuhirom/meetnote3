@@ -40,14 +40,19 @@ class RecoveringService(
         recoveryLogs = DocumentDirectory
             .listAll()
             .filter {
-                !FileSystem.SYSTEM.exists(it.summaryFilePath())
-            }.filter {
-                !it.didRecoveryError()
-            }.sortedBy {
+                when (it.status()) {
+                    DocumentStatus.WAITING_MIX -> true
+                    DocumentStatus.WAITING_TRANSCRIBE -> true
+
+                    DocumentStatus.DONE -> false
+                    DocumentStatus.ERROR -> false
+                    DocumentStatus.RECORDING -> false
+                }
+            }.sortedByDescending {
                 it.shortName()
             }.map {
                 RecoveryLog(it)
-            }.shuffled()
+            }
 
         info("Recovering: ${recoveryLogs.size} directories.")
         recoveryLogs.forEach { recoveryLog ->
