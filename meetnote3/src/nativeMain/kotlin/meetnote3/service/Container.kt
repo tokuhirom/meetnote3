@@ -23,6 +23,7 @@ class Container {
         summarizingWorker,
         transcriptWorker,
         recoveringService,
+        recordingService,
     )
 
     fun startTrayIcon(): NSApplicationDelegateProtocol = trayIconHandler.startTrayIcon()
