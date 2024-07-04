@@ -11,7 +11,6 @@ import platform.AppKit.NSButton
 import platform.AppKit.NSImage
 import platform.AppKit.NSImageScaleProportionallyUpOrDown
 import platform.AppKit.NSImageView
-import platform.AppKit.NSPopUpButton
 import platform.AppKit.NSScrollView
 import platform.AppKit.NSTableColumn
 import platform.AppKit.NSTableView
@@ -165,21 +164,20 @@ class MeetingLogDialog :
         return window
     }
 
-    private fun loadNotesItems(): List<String> {
+    private fun loadNotesItems(): List<FileTableItem> {
         val notesItems = DocumentDirectory
             .listAll()
             .sortedByDescending { it.shortName() }
             .take(50)
             .map {
                 val status = it.status()
-                it.basedir.name + " " + if (status == DocumentStatus.DONE) {
+                val title = it.shortName() + "  " + if (status == DocumentStatus.DONE) {
                     "✅"
                 } else {
                     status
                 } + (it.duration() ?: "")
+                FileTableItem(title, it)
             }
-        fileTableViewDelegate.updateFiles(notesItems)
-        fileTableView?.reloadData()
         return notesItems
     }
 
@@ -251,47 +249,19 @@ class MeetingLogDialog :
         window = null
     }
 
-    @OptIn(BetaInteropApi::class)
-    @ObjCAction
-    fun notesFileSelected(sender: NSPopUpButton) {
-        info("Selected notes file")
-        val selectedNotesFile = sender.titleOfSelectedItem ?: return
-        setDocument(selectedNotesFile)
-    }
+    fun setDocument(document: DocumentDirectory) {
+        audioPlayer.pause()
 
-    private fun extractNameFromTitle(input: String): String {
-        val indexOfFirstSpace = input.indexOf(' ')
-        return if (indexOfFirstSpace != -1) {
-            input.substring(0, indexOfFirstSpace)
-        } else {
-            input // スペースがない場合、元の文字列をそのまま返す
-        }
-    }
-
-    fun setDocument(name: String) {
-        val document = DocumentDirectory.find(extractNameFromTitle(name))
-        if (document != null) {
-            audioPlayer.pause()
-
-            this.documentDirectory = document
-            imagesContainerView.subviews.forEach {
-                if (it is NSView) {
-                    it.removeFromSuperview()
-                }
-            }
-            showImages(document)
-
-            notesBodyTextView.string = readSummaryFile(document)
-            lrcBodyTextView.string = readLrcFile(document)
-        } else {
-            notesBodyTextView.string = "Document not found."
-            lrcBodyTextView.string = "Document not found."
-            imagesContainerView.subviews.forEach {
-                if (it is NSView) {
-                    it.removeFromSuperview()
-                }
+        this.documentDirectory = document
+        imagesContainerView.subviews.forEach {
+            if (it is NSView) {
+                it.removeFromSuperview()
             }
         }
+        showImages(document)
+
+        notesBodyTextView.string = readSummaryFile(document)
+        lrcBodyTextView.string = readLrcFile(document)
     }
 
     private fun showImages(document: DocumentDirectory) {
