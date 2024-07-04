@@ -4,26 +4,25 @@ import meetnote3.getSharableContent
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
 import meetnote3.recorder.MicRecorder
-import meetnote3.recorder.ScreenImageRecorder
 import meetnote3.recorder.ScreenRecorder
 import meetnote3.recorder.mix
 import meetnote3.recorder.startAudioRecording
+import meetnote3.recorder.startImageCaptureJob
 import meetnote3.recorder.startScreenAudioRecord
-import meetnote3.recorder.startScreenImageRecord
 import okio.FileSystem
 import platform.AVFoundation.AVFileTypeMPEG4
-import platform.CoreMedia.CMTimeMake
 import platform.ScreenCaptureKit.SCContentFilter
 import platform.ScreenCaptureKit.SCDisplay
 import platform.ScreenCaptureKit.SCStreamConfiguration
 import platform.ScreenCaptureKit.SCWindow
 import platform.posix.getenv
 
+import kotlin.time.Duration
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.coroutines.Job
 
 class CaptureMixService {
-    @OptIn(ExperimentalForeignApi::class)
     @BetaInteropApi
     suspend fun start(documentDirectory: DocumentDirectory): CaptureState {
         val micFileName = documentDirectory.micFilePath().toString()
@@ -61,21 +60,15 @@ class CaptureMixService {
             captureConfiguration,
         )
 
-        val imageRecorder = if (targetWindow != null) {
+        val imageRecorderJob = if (targetWindow != null) {
             info("Image is ready to record: $targetWindow")
-            val imageContentFilter = SCContentFilter(
-                targetWindow as SCWindow,
-            )
-            val imageCaptureConfiguration = SCStreamConfiguration().apply {
-                capturesAudio = false
-                showsCursor = false
-                // capture image in each 1 minutes
-                minimumFrameInterval = CMTimeMake(60, 1)
-            }
-            startScreenImageRecord(
-                imageContentFilter,
-                imageCaptureConfiguration,
+            // When simplifying the implementation by launching multiple instances of ScreenCaptureKit, I
+            // encountered an issue where only one instance was receiving the data. It is important to be aware
+            // of this limitation.
+            startImageCaptureJob(
+                (targetWindow as SCWindow).windowID,
                 documentDirectory,
+                interval = Duration.parse("1m"),
             )
         } else {
             info("Target window is missing. Skip image recording.")
@@ -86,7 +79,7 @@ class CaptureMixService {
             documentDirectory = documentDirectory,
             micRecorder = micRecorder,
             screenAudioRecorder = screenAudioRecorder,
-            imageRecorder = imageRecorder,
+            imageRecorderJob = imageRecorderJob,
         )
     }
 }
@@ -95,7 +88,7 @@ data class CaptureState(
     val documentDirectory: DocumentDirectory,
     private val micRecorder: MicRecorder,
     private val screenAudioRecorder: ScreenRecorder,
-    private val imageRecorder: ScreenImageRecorder?,
+    private val imageRecorderJob: Job?,
 ) {
     @OptIn(ExperimentalForeignApi::class)
     suspend fun stop() {
@@ -111,7 +104,7 @@ data class CaptureState(
             info("Failed to stop screenAudioRecorder: $e")
         }
         try {
-            imageRecorder?.stop()
+            imageRecorderJob?.cancel()
         } catch (e: Exception) {
             info("Failed to stop imageRecorder: $e")
         }
