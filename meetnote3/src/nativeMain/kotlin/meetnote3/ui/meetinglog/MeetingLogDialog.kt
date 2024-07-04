@@ -17,6 +17,7 @@ import platform.AppKit.NSView
 import platform.AppKit.NSWindow
 import platform.AppKit.NSWindowDelegateProtocol
 import platform.AppKit.NSWindowStyleMaskClosable
+import platform.AppKit.NSWindowStyleMaskMiniaturizable
 import platform.AppKit.NSWindowStyleMaskResizable
 import platform.AppKit.NSWindowStyleMaskTitled
 import platform.AppKit.translatesAutoresizingMaskIntoConstraints
@@ -91,10 +92,13 @@ class MeetingLogDialog :
     private fun createWindow(): NSWindow {
         val window = NSWindow(
             contentRect = NSMakeRect(0.0, 0.0, 1260.0, 720.0),
-            styleMask = NSWindowStyleMaskTitled or NSWindowStyleMaskClosable or NSWindowStyleMaskResizable,
+            styleMask =
+                NSWindowStyleMaskTitled or NSWindowStyleMaskClosable or NSWindowStyleMaskResizable or NSWindowStyleMaskMiniaturizable,
             backing = NSBackingStoreBuffered,
             defer = false,
-        )
+        ).apply {
+            makeKeyAndOrderFront(null)
+        }
         window.title = "Meeting Notes Viewer"
         window.delegate = this
 

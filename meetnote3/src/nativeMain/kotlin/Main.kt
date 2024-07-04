@@ -6,6 +6,7 @@ import meetnote3.utils.createNewSystemLogPath
 import meetnote3.utils.getChildProcs
 import meetnote3.utils.redirectOutput
 import platform.AppKit.NSApplication
+import platform.AppKit.NSApplicationActivationPolicy
 import platform.posix.getenv
 
 import kotlin.time.Duration
@@ -50,6 +51,8 @@ fun main() {
 
     info("Registering tray icon...")
     val appDelegate = container.startTrayIcon()
+    app.setActivationPolicy(NSApplicationActivationPolicy.NSApplicationActivationPolicyRegular)
+    app.activateIgnoringOtherApps(true)
     app.delegate = appDelegate
     app.run()
     error("Should not reach here.")
