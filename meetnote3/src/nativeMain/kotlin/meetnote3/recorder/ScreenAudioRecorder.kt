@@ -11,17 +11,12 @@ import platform.AVFoundation.AVAssetWriter
 import platform.AVFoundation.AVAssetWriterInput
 import platform.AVFoundation.AVFileTypeAppleM4A
 import platform.AVFoundation.AVMediaTypeAudio
-import platform.AppKit.NSBitmapImageFileType
-import platform.AppKit.NSBitmapImageRep
-import platform.AppKit.NSImage
-import platform.AppKit.representationUsingType
 import platform.CoreAudioTypes.kAudioFormatMPEG4AAC
 import platform.CoreMedia.CMClockGetHostTimeClock
 import platform.CoreMedia.CMClockGetTime
 import platform.CoreMedia.CMSampleBufferIsValid
 import platform.CoreMedia.CMSampleBufferRef
 import platform.Foundation.NSURL
-import platform.Foundation.writeToFile
 import platform.ScreenCaptureKit.SCContentFilter
 import platform.ScreenCaptureKit.SCStream
 import platform.ScreenCaptureKit.SCStreamConfiguration
@@ -128,21 +123,6 @@ suspend fun startScreenAudioRecord(
     stream.startCapture()
 
     return ScreenRecorder(stream, audioWriterInput, assetWriter)
-}
-
-private fun saveImageToFile(
-    image: NSImage,
-    filePath: String,
-    fileFormat: NSBitmapImageFileType,
-): Boolean {
-    val imageData = image.TIFFRepresentation ?: return false
-    val bitmapImageRep = NSBitmapImageRep(data = imageData) ?: return false
-    val pngData = bitmapImageRep.representationUsingType(
-        fileFormat,
-        properties = emptyMap<Any?, Any>(),
-    )
-
-    return pngData?.writeToFile(filePath, atomically = true) ?: false
 }
 
 suspend fun SCStream.startCapture() =
