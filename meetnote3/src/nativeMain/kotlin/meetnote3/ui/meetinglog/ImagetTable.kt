@@ -1,7 +1,5 @@
 package meetnote3.ui.meetinglog
 
-import okio.FileSystem
-import okio.IOException
 import okio.Path
 import platform.AppKit.NSImage
 import platform.AppKit.NSImageScaleProportionallyUpOrDown
@@ -14,16 +12,11 @@ import platform.AppKit.NSTableViewDelegateProtocol
 import platform.AppKit.NSView
 import platform.CoreGraphics.CGRect
 import platform.Foundation.NSMakeRect
-import platform.darwin.DISPATCH_QUEUE_PRIORITY_DEFAULT
+import platform.Foundation.NSURL
 import platform.darwin.NSObject
-import platform.darwin.dispatch_async
-import platform.darwin.dispatch_get_global_queue
-import platform.darwin.dispatch_get_main_queue
-import platform.darwin.dispatch_sync
 
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.convert
 import kotlinx.cinterop.useContents
 
 data class ImageTableItem(
@@ -64,26 +57,9 @@ class ImageTableViewDelegate :
 
         val item = images[row.toInt()]
 
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT.convert(), 0u)) {
-            val imageData = try {
-                FileSystem.SYSTEM.read(item.path) {
-                    readByteArray()
-                }
-            } catch (e: IOException) {
-                null
-            }
-
-            if (imageData != null) {
-                val nsImage = NSImage(data = imageData.toNSData())
-                dispatch_sync(dispatch_get_main_queue()) {
-                    cellView.imageView?.image = nsImage
-                }
-            } else {
-                dispatch_sync(dispatch_get_main_queue()) {
-                    cellView.imageView?.image = null // 画像がない場合は空
-                }
-            }
-        }
+        val url = NSURL.fileURLWithPath(item.path.toString())
+        val nsImage = NSImage(contentsOfURL = url)
+        cellView.imageView?.image = nsImage
 
         return cellView
     }

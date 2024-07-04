@@ -1,8 +1,6 @@
 package meetnote3.ui.meetinglog
 
 import meetnote3.model.DocumentDirectory
-import okio.FileSystem
-import okio.IOException
 import platform.AppKit.NSImage
 import platform.AppKit.NSTableColumn
 import platform.AppKit.NSTableView
@@ -11,15 +9,10 @@ import platform.AppKit.NSTableViewDelegateProtocol
 import platform.AppKit.NSView
 import platform.Foundation.NSMakeRect
 import platform.Foundation.NSNotification
-import platform.darwin.DISPATCH_QUEUE_PRIORITY_DEFAULT
+import platform.Foundation.NSURL
 import platform.darwin.NSObject
-import platform.darwin.dispatch_async
-import platform.darwin.dispatch_get_global_queue
-import platform.darwin.dispatch_get_main_queue
-import platform.darwin.dispatch_sync
 
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.convert
 import kotlinx.cinterop.useContents
 
 data class FileTableItem(
@@ -61,36 +54,15 @@ class FileTableViewDelegate(
 
         val item = files[row.toInt()]
 
-        // タイトルを設定
         cellView.textField?.stringValue = item.name
 
-        // 画像を設定（非同期で読み込み）
-        val images = item.documentDirectory.listImages()
-        if (images.isNotEmpty()) {
-            val imagePath = images.first()
-            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT.convert(), 0u)) {
-                val imageData = try {
-                    FileSystem.SYSTEM.read(imagePath) {
-                        readByteArray()
-                    }
-                } catch (e: IOException) {
-                    null
-                }
-
-                if (imageData != null) {
-                    val nsImage = NSImage(data = imageData.toNSData())
-                    dispatch_sync(dispatch_get_main_queue()) {
-                        cellView.imageView?.image = nsImage
-                    }
-                } else {
-                    dispatch_sync(dispatch_get_main_queue()) {
-                        cellView.imageView?.image = null // 画像がない場合は空
-                    }
-                }
+        cellView.imageView?.image = item.documentDirectory
+            .listImages()
+            .firstOrNull()
+            ?.let { imagePath ->
+                val url = NSURL.fileURLWithPath(imagePath.toString())
+                NSImage(contentsOfURL = url)
             }
-        } else {
-            cellView.imageView?.image = null // 画像がない場合
-        }
 
         return cellView
     }
