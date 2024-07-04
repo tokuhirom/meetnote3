@@ -27,8 +27,6 @@ import platform.Foundation.NSSelectorFromString
 import platform.Foundation.NSTimer
 import platform.Foundation.create
 import platform.darwin.NSObject
-import platform.darwin.dispatch_queue_create
-import platform.darwin.dispatch_queue_t
 
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -58,8 +56,6 @@ class MeetingLogDialog :
     private var fileTableView: NSTableView? = null
     private val fileTableViewDelegate = FileTableViewDelegate(this)
     private val imageTableViewDelegate = ImageTableViewDelegate()
-    private val backgroundQueue: dispatch_queue_t =
-        dispatch_queue_create("com.meetnote3.imageLoading", null)
 
     private val instanceHolder = mutableListOf<NSWindow>()
 
