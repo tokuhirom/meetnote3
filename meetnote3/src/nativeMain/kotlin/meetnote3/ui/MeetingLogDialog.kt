@@ -149,6 +149,7 @@ class MeetingLogDialog :
             repeats = true,
             block = { reloadNotesItems() },
         )
+        reloadNotesItems()
 
         instanceHolder.add(window)
         return window
