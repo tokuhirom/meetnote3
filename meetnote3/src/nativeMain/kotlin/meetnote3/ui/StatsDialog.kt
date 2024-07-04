@@ -116,7 +116,7 @@ class StatsDialog(
                 append("# Transcribing\n\n")
                 renderTranscribeLogs(this)
                 append("\n")
-                append("# Recovery process\n")
+                append("# Recovery process\n\n")
                 renderRecoveryProcess(this)
             }.toString()
     }
