@@ -3,6 +3,7 @@ package meetnote3.ui
 import meetnote3.info
 import meetnote3.service.RecordingService
 import meetnote3.service.RecoveringService
+import meetnote3.ui.meetinglog.MeetingLogDialog
 import meetnote3.workers.SummarizingWorker
 import meetnote3.workers.TranscriptWorker
 import platform.AppKit.NSApplicationDelegateProtocol

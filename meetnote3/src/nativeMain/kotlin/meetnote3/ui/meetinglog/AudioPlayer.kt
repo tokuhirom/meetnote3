@@ -1,4 +1,4 @@
-package meetnote3.ui
+package meetnote3.ui.meetinglog
 
 import platform.AVFoundation.AVPlayer
 import platform.AVFoundation.AVPlayerItem
