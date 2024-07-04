@@ -18,9 +18,11 @@ class Container {
     private val whisperTranscriptService = WhisperTranscriptService(summarizingWorker)
     private val transcriptWorker = TranscriptWorker(whisperTranscriptService)
     private val recordingService = RecordingService(captureMixService, transcriptWorker)
+    private val recoveringService = RecoveringService(whisperTranscriptService, summarizeService)
     private val trayIconHandler = TrayIconHandler(
         summarizingWorker,
         transcriptWorker,
+        recoveringService,
     )
 
     fun startTrayIcon(): NSApplicationDelegateProtocol = trayIconHandler.startTrayIcon()
@@ -43,7 +45,7 @@ class Container {
         println("Window monitoring service started.")
 
         CoroutineScope(Dispatchers.Default).launch {
-            RecoveringService(transcriptWorker, summarizingWorker).recover()
+            recoveringService.recover()
         }
 
         CoroutineScope(Dispatchers.Default).launch {

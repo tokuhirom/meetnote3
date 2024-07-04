@@ -3,69 +3,100 @@ package meetnote3.service
 import meetnote3.debug
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
+import meetnote3.model.DocumentStatus
 import meetnote3.recorder.mix
-import meetnote3.workers.SummarizingWorker
-import meetnote3.workers.TranscriptWorker
 import okio.FileSystem
+import platform.posix.warn
+
+import kotlinx.datetime.Clock
+
+data class RecoveryLog(
+    val documentDirectory: DocumentDirectory,
+    var startAtSeconds: Long? = null,
+    var endAtSeconds: Long? = null,
+    var error: String? = null,
+    var status: DocumentStatus = documentDirectory.status(),
+) {
+    fun updateStatus() {
+        status = documentDirectory.status()
+    }
+}
 
 class RecoveringService(
-    private val transcriptWorker: TranscriptWorker,
-    private val summarizingWorker: SummarizingWorker,
+    private val transcriptService: WhisperTranscriptService,
+    private val summarizeService: SummarizeService,
 ) {
     private val fs = FileSystem.SYSTEM
+    private var currentTarget: RecoveryLog? = null
+    private var recoveryLogs: List<RecoveryLog> = emptyList()
+
+    fun recoveryLogs(): List<RecoveryLog> = recoveryLogs
+
+    fun currentTarget(): RecoveryLog? = currentTarget
 
     suspend fun recover() {
         println("RecoveringService.recover")
 
-        val dirs = DocumentDirectory
+        recoveryLogs = DocumentDirectory
             .listAll()
             .filter {
                 !FileSystem.SYSTEM.exists(it.summaryFilePath())
             }.filter {
-                !it.isBrokenScreenAudio()
-            }.sortedByDescending {
+                !it.didRecoveryError()
+            }.sortedBy {
                 it.shortName()
-            }
+            }.map {
+                RecoveryLog(it)
+            }.shuffled()
 
-        info("Recovering: ${dirs.size} directories.")
-        dirs.forEach {
+        info("Recovering: ${recoveryLogs.size} directories.")
+        recoveryLogs.forEach { recoveryLog ->
             try {
-                debug("Recovering: $it")
-                recoverDocument(it)
+                debug("Recovering: $recoveryLog")
+                currentTarget = recoveryLog
+                recoveryLog.startAtSeconds = Clock.System.now().epochSeconds
+                recoverDocument(recoveryLog)
             } catch (e: Exception) {
-                info("Failed to recover: $it")
-                e.printStackTrace()
+                warn("Failed to recover: $recoveryLog $e")
+                recoveryLog.documentDirectory.writeRecoveryError(e.toString() + "\n" + e.stackTraceToString())
+                recoveryLog.error = e.toString()
+            } finally {
+                currentTarget = null
             }
         }
     }
 
-    private suspend fun recoverDocument(dd: DocumentDirectory) {
+    private suspend fun recoverDocument(recoveryLog: RecoveryLog) {
+        val dd = recoveryLog.documentDirectory
+
         // create mixed file if not exists
         if (fs.exists(dd.micFilePath()) && fs.exists(dd.screenFilePath()) && !fs.exists(dd.mixedFilePath())) {
-            info("Recovering: $dd")
-            if (dd.isBrokenScreenAudio()) {
-                // A 44-byte file contains only the header and no data.
-                // In this case, it is assumed that the file was not saved halfway, so recovery is skipped.
-                debug("Incomplete file. Skip recovering: $dd")
-            } else {
-                mix(
-                    listOf(
-                        dd.micFilePath().toString(),
-                        dd.screenFilePath().toString(),
-                    ),
-                    dd.mixedFilePath().toString(),
-                )
-            }
+            info("Recovering mix: $dd")
+            mix(
+                listOf(
+                    dd.micFilePath().toString(),
+                    dd.screenFilePath().toString(),
+                ),
+                dd.mixedFilePath().toString(),
+            )
+            info("Mixed: $dd")
         }
+        recoveryLog.updateStatus()
+
         if (fs.exists(dd.waveFilePath())) {
             info("Remove temporary file $dd")
             fs.delete(dd.waveFilePath())
         }
+        recoveryLog.updateStatus()
+
         if (fs.exists(dd.mixedFilePath()) && !fs.exists(dd.lrcFilePath())) {
-            transcriptWorker.emit(dd)
+            transcriptService.transcribe(dd)
         }
+        recoveryLog.updateStatus()
+
         if (fs.exists(dd.lrcFilePath()) && !fs.exists(dd.summaryFilePath())) {
-            summarizingWorker.emit(dd)
+            summarizeService.summarize(dd)
         }
+        recoveryLog.updateStatus()
     }
 }

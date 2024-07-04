@@ -1,6 +1,7 @@
 package meetnote3.ui
 
 import meetnote3.info
+import meetnote3.service.RecoveringService
 import meetnote3.workers.SummarizingWorker
 import meetnote3.workers.TranscriptWorker
 import platform.AppKit.NSApplicationDelegateProtocol
@@ -20,6 +21,7 @@ import kotlinx.cinterop.ObjCAction
 class TrayIconHandler(
     private val summarizingWorker: SummarizingWorker,
     private val transcriptWorker: TranscriptWorker,
+    private val recoveringService: RecoveringService,
 ) {
     private lateinit var appDelegate: NSApplicationDelegateProtocol
     private lateinit var statusItem: NSStatusItem
@@ -84,7 +86,7 @@ class TrayIconHandler(
 
             @ObjCAction
             fun openStatsDialog() {
-                val statsDialog = StatsDialog(summarizingWorker, transcriptWorker)
+                val statsDialog = StatsDialog(summarizingWorker, transcriptWorker, recoveringService)
                 statsDialog.show()
             }
         }

@@ -22,7 +22,8 @@ class WhisperTranscriptService(
     private val summarizingWorker: SummarizingWorker,
     private val modelName: String = "medium",
     private val language: String = "japanese",
-    private val whisperCppTimeout: Duration = Duration.parse("1h"),
+    // 1h is too short for the timeout. It should be 3h.
+    private val whisperCppTimeout: Duration = Duration.parse("3h"),
     private val ffmpegTimeout: Duration = Duration.parse("1h"),
 ) {
     private val client = HttpClient(Darwin) {
