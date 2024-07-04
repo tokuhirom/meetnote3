@@ -31,6 +31,7 @@ import platform.Foundation.NSMakeRect
 import platform.Foundation.NSNotification
 import platform.Foundation.NSSelectorFromString
 import platform.Foundation.NSSize
+import platform.Foundation.NSTimer
 import platform.Foundation.create
 import platform.darwin.NSObject
 
@@ -60,6 +61,8 @@ class MeetingLogDialog :
     private lateinit var imagesContainerView: NSView
     private lateinit var documentDirectory: DocumentDirectory
     private val audioPlayer = AudioPlayer()
+    private var reloadTimer: NSTimer? = null
+    private var notesFilesDropdown: NSPopUpButton? = null
 
     private val instanceHolder = mutableListOf<NSWindow>()
 
@@ -95,7 +98,7 @@ class MeetingLogDialog :
                     status
                 } + (it.duration() ?: "")
             }
-        val notesFilesDropdown = NSPopUpButton(NSMakeRect(10.0, 680.0, 300.0, 30.0), false).apply {
+        notesFilesDropdown = NSPopUpButton(NSMakeRect(10.0, 680.0, 300.0, 30.0), false).apply {
             addItemsWithTitles(notesItems)
             setEnabled(true)
             setTarget(this@MeetingLogDialog)
@@ -117,7 +120,7 @@ class MeetingLogDialog :
             setDocument(it)
         }
 
-        contentView?.addSubview(notesFilesDropdown)
+        contentView?.addSubview(notesFilesDropdown!!)
         contentView?.addSubview(
             NSScrollView().apply {
                 translatesAutoresizingMaskIntoConstraints = false
@@ -143,8 +146,58 @@ class MeetingLogDialog :
         )
         contentView?.addSubview(buildAudioPlayer())
 
+        reloadTimer = NSTimer.scheduledTimerWithTimeInterval(
+            interval = 10.0,
+            repeats = true,
+            block = { reloadNotesItems() },
+        )
+
         instanceHolder.add(window)
         return window
+    }
+
+    private fun loadNotesItems(): List<String> =
+        DocumentDirectory
+            .listAll()
+            .sortedByDescending { it.shortName() }
+            .take(50)
+            .map {
+                val status = it.status()
+                it.basedir.name + " " + if (status == DocumentStatus.DONE) {
+                    "✅"
+                } else {
+                    status
+                } + (it.duration() ?: "")
+            }
+
+    private fun reloadNotesItems() {
+        val currentSelection = notesFilesDropdown!!.titleOfSelectedItem
+        val itemTitles = notesFilesDropdown!!.itemTitles
+        val existingId2title = itemTitles
+            .map {
+                it!! as String
+            }.associateBy { s ->
+                extractNameFromTitle(s)
+            }
+        val newItems = loadNotesItems()
+
+        newItems.forEach { newItem ->
+            val title = existingId2title[extractNameFromTitle(newItem)]
+            if (title != null) {
+                // Check if the item exists. Verify if the title matches.
+                if (title != newItem) {
+                    // The titles differ, so remove the item and insert the new item at the beginning.
+                    notesFilesDropdown!!.removeItemWithTitle(title)
+                    notesFilesDropdown?.insertItemWithTitle(newItem, atIndex = 0)
+                    if (currentSelection == title) {
+                        notesFilesDropdown?.selectItemWithTitle(newItem)
+                    }
+                }
+            } else {
+                // The item does not exist, so add it.
+                notesFilesDropdown?.insertItemWithTitle(newItem, 0)
+            }
+        }
     }
 
     @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
