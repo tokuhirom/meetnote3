@@ -63,6 +63,8 @@ data class DocumentDirectory(
             .parse(basedir.name)
             .format(shortNameFormatter)
 
+    fun isBrokenScreenAudio(): Boolean = (FileSystem.SYSTEM.metadataOrNull(screenFilePath())?.size ?: 0L) == 44L
+
     fun createImageFileName(): Path {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         return basedir.resolve("images").resolve(now.format(dateTimeFormatter) + ".png")
@@ -92,7 +94,7 @@ data class DocumentDirectory(
         when {
             FileSystem.SYSTEM.exists(lrcFilePath()) -> DocumentStatus.DONE
             FileSystem.SYSTEM.exists(mixedFilePath()) -> DocumentStatus.TRANSCRIBING
-            (FileSystem.SYSTEM.metadataOrNull(screenFilePath())?.size ?: 0L) == 44L -> DocumentStatus.ERROR
+            isBrokenScreenAudio() -> DocumentStatus.ERROR
             FileSystem.SYSTEM.exists(micFilePath()) && FileSystem.SYSTEM.exists(screenFilePath()) -> DocumentStatus.MIXING
             FileSystem.SYSTEM.exists(micFilePath()) || FileSystem.SYSTEM.exists(screenFilePath()) -> DocumentStatus.RECORDING
             else -> DocumentStatus.ERROR
