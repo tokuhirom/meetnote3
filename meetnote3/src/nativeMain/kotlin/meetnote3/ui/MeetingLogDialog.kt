@@ -77,7 +77,7 @@ class MeetingLogDialog :
     @OptIn(ExperimentalForeignApi::class)
     private fun createWindow(): NSWindow {
         val window = NSWindow(
-            contentRect = NSMakeRect(0.0, 0.0, 960.0, 720.0),
+            contentRect = NSMakeRect(0.0, 0.0, 1260.0, 720.0), // Increased width by 300px
             styleMask = NSWindowStyleMaskTitled or NSWindowStyleMaskClosable or NSWindowStyleMaskResizable,
             backing = NSBackingStoreBuffered,
             defer = false,
@@ -112,7 +112,8 @@ class MeetingLogDialog :
             setEditable(false)
         }
 
-        imagesContainerView = NSView(NSMakeRect(10.0, 10.0, 10.0, 20.0)).apply {
+        imagesContainerView = NSView(NSMakeRect(960.0, 10.0, 300.0, 660.0)).apply {
+            // Positioned to the right
             setAutoresizingMask(NSViewWidthSizable or NSViewHeightSizable)
         }
 
@@ -139,7 +140,7 @@ class MeetingLogDialog :
             NSScrollView().apply {
                 translatesAutoresizingMaskIntoConstraints = false
                 documentView = imagesContainerView
-                setFrame(NSMakeRect(10.0, 10.0, 300.0, 320.0))
+                setFrame(NSMakeRect(960.0, 10.0, 300.0, 660.0)) // Positioned to the right
                 hasHorizontalScroller = false
                 hasVerticalScroller = true
             },
