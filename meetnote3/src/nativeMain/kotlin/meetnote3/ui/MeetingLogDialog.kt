@@ -94,6 +94,7 @@ class MeetingLogDialog :
             val column = NSTableColumn("Files").apply {
                 width = 300.0
                 setEditable(false)
+                setHeaderView(null)
             }
             addTableColumn(column)
             setDelegate(fileTableViewDelegate)
