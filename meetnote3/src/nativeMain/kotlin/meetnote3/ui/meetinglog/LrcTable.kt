@@ -37,7 +37,7 @@ class LrcTableViewDelegate :
                     0.0,
                     0.0,
                     tableView.bounds.useContents { this.size.width },
-                    100.0,
+                    30.0,
                 ),
             ).apply {
                 identifier = "LrcTableCellView"
@@ -62,5 +62,5 @@ class LrcTableViewDelegate :
     override fun tableView(
         tableView: NSTableView,
         heightOfRow: Long,
-    ): Double = 50.0
+    ): Double = 20.0
 }
