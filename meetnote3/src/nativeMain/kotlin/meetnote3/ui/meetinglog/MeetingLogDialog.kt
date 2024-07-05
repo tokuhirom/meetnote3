@@ -3,6 +3,7 @@ package meetnote3.ui.meetinglog
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
 import meetnote3.model.DocumentStatus
+import meetnote3.transcript.parseLrcContent
 import okio.FileSystem
 import okio.IOException
 import platform.AppKit.NSBackingStoreBuffered
@@ -273,7 +274,9 @@ class MeetingLogDialog :
 
         return try {
             FileSystem.SYSTEM.read(document.lrcFilePath()) {
-                readUtf8()
+                parseLrcContent(readUtf8()).joinToString("\n") {
+                    it.timestamp + " " + it.content
+                } + "\n"
             }
         } catch (e: IOException) {
             "Cannot read lrc file(${e.message}): ${document.lrcFilePath()}"
