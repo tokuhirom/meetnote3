@@ -1,5 +1,6 @@
 package meetnote3.ui.meetinglog
 
+import MeetingLogDialog
 import meetnote3.model.DocumentDirectory
 import platform.AppKit.NSImage
 import platform.AppKit.NSTableColumn
