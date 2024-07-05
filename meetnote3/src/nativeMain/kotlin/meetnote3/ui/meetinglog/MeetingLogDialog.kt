@@ -48,7 +48,7 @@ class MeetingLogDialog :
     private var reloadTimer: NSTimer? = null
     private var fileTableView: NSTableView? = null
     private val fileTableViewDelegate = FileTableViewDelegate(this)
-    private val lrcTableViewDelegate = LrcTableViewDelegate()
+    private val lrcTableViewDelegate = LrcTableViewDelegate(this)
     private val imageTableViewDelegate = ImageTableViewDelegate()
 
     private val instanceHolder = mutableListOf<NSWindow>()
@@ -289,5 +289,9 @@ class MeetingLogDialog :
                 LrcLine("00:00.00", "Cannot read lrc file(${e.message}): ${document.lrcFilePath()}"),
             )
         }
+    }
+
+    fun seek(seconds: Double) {
+        audioPlayer.seekToTime(seconds)
     }
 }

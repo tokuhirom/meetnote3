@@ -1,5 +1,6 @@
 package meetnote3.ui.meetinglog
 
+import MeetingLogDialog
 import meetnote3.transcript.LrcLine
 import platform.AppKit.NSTableColumn
 import platform.AppKit.NSTableView
@@ -13,8 +14,9 @@ import platform.darwin.NSObject
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
 
-class LrcTableViewDelegate :
-    NSObject(),
+class LrcTableViewDelegate(
+    private val parent: MeetingLogDialog,
+) : NSObject(),
     NSTableViewDelegateProtocol,
     NSTableViewDataSourceProtocol {
     private var lrcItems: List<LrcLine> = listOf()
@@ -54,8 +56,8 @@ class LrcTableViewDelegate :
         val tableView = (notification.`object` as? NSTableView) ?: return
         val selectedRow = tableView.selectedRow
         if (selectedRow != -1L) {
-//            val selectedFile = lrcItems[selectedRow.toInt()]
-//            parent.setDocument(selectedFile.documentDirectory)
+            val selectedFile = lrcItems[selectedRow.toInt()]
+            parent.seek(selectedFile.timestampToSeconds())
         }
     }
 

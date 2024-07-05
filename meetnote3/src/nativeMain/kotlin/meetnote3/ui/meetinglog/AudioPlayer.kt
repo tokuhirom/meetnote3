@@ -48,6 +48,7 @@ class AudioPlayer {
     fun seekToTime(seconds: Double) {
         val time = CMTimeMakeWithSeconds(seconds, preferredTimescale = NSEC_PER_SEC.convert())
         player?.seekToTime(time)
+        player?.play()
     }
 
     @OptIn(ExperimentalForeignApi::class)

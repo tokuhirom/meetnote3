@@ -22,4 +22,14 @@ class LrcParserKtTest {
 
         assertEquals(expected, result)
     }
+
+    @Test
+    fun `timestampToSeconds should convert LRC timestamp to seconds correctly`() {
+        val lrcLine = LrcLine("02:30.50", "Sample content")
+        val expectedSeconds = 150.5 // 2 minutes and 30.50 seconds to seconds
+
+        val resultSeconds = lrcLine.timestampToSeconds()
+
+        assertEquals(expectedSeconds, resultSeconds, 0.01)
+    }
 }

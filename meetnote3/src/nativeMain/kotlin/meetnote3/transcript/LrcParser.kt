@@ -16,9 +16,18 @@ fun getLrcLastTimestamp(filePath: Path): String {
 }
 
 data class LrcLine(
+    // Timestamp in the format of "mm:ss.SS"
     val timestamp: String,
     val content: String,
-)
+) {
+    fun timestampToSeconds(): Double {
+        val parts = timestamp.split(":", ".")
+        val minutesToSeconds = parts[0].toDouble() * 60
+        val seconds = parts[1].toDouble()
+        val millisecondsToSeconds = parts[2].toDouble() / 100
+        return minutesToSeconds + seconds + millisecondsToSeconds
+    }
+}
 
 fun parseLrcContent(lrcContent: String): List<LrcLine> {
     val lines = lrcContent.lines()
