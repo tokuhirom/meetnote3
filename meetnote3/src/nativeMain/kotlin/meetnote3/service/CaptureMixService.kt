@@ -9,13 +9,11 @@ import meetnote3.recorder.mix
 import meetnote3.recorder.startAudioRecording
 import meetnote3.recorder.startImageCaptureJob
 import meetnote3.recorder.startScreenAudioRecord
-import okio.FileSystem
 import platform.AVFoundation.AVFileTypeMPEG4
 import platform.ScreenCaptureKit.SCContentFilter
 import platform.ScreenCaptureKit.SCDisplay
 import platform.ScreenCaptureKit.SCStreamConfiguration
 import platform.ScreenCaptureKit.SCWindow
-import platform.posix.getenv
 
 import kotlin.time.Duration
 import kotlinx.cinterop.BetaInteropApi
@@ -119,12 +117,12 @@ data class CaptureState(
         println("Created mix file: $outFileName")
 
         // これを外すと、なぜかスピーカー音声がうまくミックスされない気がする。
-        if (getenv("MEETNOTE3_KEEP_TEMP_FILES") == null) {
-            FileSystem.SYSTEM.delete(micFile, false)
-            FileSystem.SYSTEM.delete(screenFile, false)
-            info("Deleted temp files($micFile, $screenFile)")
-        } else {
-            info("Keep temp files due to MEETNOTE3_KEEP_TEMP_FILES($micFile, $screenFile)")
-        }
+//        if (getenv("MEETNOTE3_KEEP_TEMP_FILES") == null) {
+//            FileSystem.SYSTEM.delete(micFile, false)
+//            FileSystem.SYSTEM.delete(screenFile, false)
+//            info("Deleted temp files($micFile, $screenFile)")
+//        } else {
+//            info("Keep temp files due to MEETNOTE3_KEEP_TEMP_FILES($micFile, $screenFile)")
+//        }
     }
 }
