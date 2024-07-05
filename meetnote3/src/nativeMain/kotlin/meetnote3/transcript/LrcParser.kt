@@ -14,3 +14,28 @@ fun getLrcLastTimestamp(filePath: Path): String {
         return lastLine.substring(1, 9)
     }
 }
+
+data class LrcLine(
+    val timestamp: String,
+    val content: String,
+)
+
+fun parseLrcContent(lrcContent: String): List<LrcLine> {
+    val lines = lrcContent.lines()
+    val lrcLines = mutableListOf<LrcLine>()
+    var previousContent: String? = null
+
+    for (line in lines) {
+        if (line.startsWith("[") && line != "[by:whisper.cpp]") {
+            val timestamp = line.substringAfter("[").substringBefore("]")
+            val content = line.substringAfter("]").trim()
+
+            if (content != previousContent) {
+                lrcLines.add(LrcLine(timestamp, content))
+                previousContent = content
+            }
+        }
+    }
+
+    return lrcLines
+}
