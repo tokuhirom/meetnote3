@@ -37,13 +37,14 @@ class MeetingLogDialog :
     NSWindowDelegateProtocol {
     private var window: NSWindow? = null
     private lateinit var notesBodyTextView: NSTextView
-    private lateinit var lrcBodyTextView: NSTextView
+    private lateinit var lrcTableView: NSTableView
     private lateinit var imageTableView: NSTableView
     private lateinit var documentDirectory: DocumentDirectory
     private val audioPlayer = AudioPlayer()
     private var reloadTimer: NSTimer? = null
     private var fileTableView: NSTableView? = null
     private val fileTableViewDelegate = FileTableViewDelegate(this)
+    private val lrcTableViewDelegate = LrcTableViewDelegate()
     private val imageTableViewDelegate = ImageTableViewDelegate()
 
     private val instanceHolder = mutableListOf<NSWindow>()
@@ -114,8 +115,20 @@ class MeetingLogDialog :
         notesBodyTextView = NSTextView(NSMakeRect(320.0, 10.0, 630.0, 320.0)).apply {
             setEditable(false)
         }
-        lrcBodyTextView = NSTextView(NSMakeRect(320.0, 340.0, 630.0, 320.0)).apply {
-            setEditable(false)
+        lrcTableView = NSTableView().apply {
+            val column = NSTableColumn("LRC Content").apply {
+                width = 630.0
+                setEditable(false)
+                setHeaderView(null)
+            }
+            addTableColumn(column)
+            setDelegate(lrcTableViewDelegate)
+            setDataSource(lrcTableViewDelegate)
+        }
+        val lrcScrollView = NSScrollView().apply {
+            documentView = lrcTableView
+            setFrame(NSMakeRect(320.0, 340.0, 630.0, 320.0))
+            hasVerticalScroller = true
         }
 
         imageTableView = NSTableView().apply {
@@ -141,13 +154,7 @@ class MeetingLogDialog :
                 setFrame(NSMakeRect(320.0, 340.0, 630.0, 320.0))
             },
         )
-        contentView?.addSubview(
-            NSScrollView().apply {
-                translatesAutoresizingMaskIntoConstraints = false
-                documentView = lrcBodyTextView
-                setFrame(NSMakeRect(320.0, 10.0, 630.0, 320.0))
-            },
-        )
+        contentView?.addSubview(lrcScrollView)
         contentView?.addSubview(imageScrollView)
         contentView?.addSubview(buildAudioPlayer())
 
@@ -235,13 +242,19 @@ class MeetingLogDialog :
         reloadImages(document)
 
         notesBodyTextView.string = readSummaryFile(document)
-        lrcBodyTextView.string = readLrcFile(document)
+        reloadLrcTable(document)
     }
 
     private fun reloadImages(document: DocumentDirectory) {
         val imageItems = document.listImages().map { ImageTableItem(it) }
         imageTableViewDelegate.updateImages(imageItems)
         imageTableView.reloadData()
+    }
+
+    private fun reloadLrcTable(document: DocumentDirectory) {
+        val lrcItems = readLrcFile(document)
+        lrcTableViewDelegate.updateLrcItems(lrcItems)
+        lrcTableView.reloadData()
     }
 
     private fun readSummaryFile(document: DocumentDirectory): String {
@@ -256,17 +269,17 @@ class MeetingLogDialog :
         }
     }
 
-    private fun readLrcFile(document: DocumentDirectory): String {
+    private fun readLrcFile(document: DocumentDirectory): List<String> {
         info("Load notes file: $document")
 
         return try {
             FileSystem.SYSTEM.read(document.lrcFilePath()) {
-                parseLrcContent(readUtf8()).joinToString("\n") {
+                parseLrcContent(readUtf8()).map {
                     it.timestamp + " " + it.content
-                } + "\n"
+                }
             }
         } catch (e: IOException) {
-            "Cannot read lrc file(${e.message}): ${document.lrcFilePath()}"
+            listOf("Cannot read lrc file(${e.message}): ${document.lrcFilePath()}")
         }
     }
 }
