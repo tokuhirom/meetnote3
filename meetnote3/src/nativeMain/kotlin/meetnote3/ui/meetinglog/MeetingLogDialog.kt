@@ -60,7 +60,7 @@ class MeetingLogDialog :
             info("Start player...")
             if (FileSystem.SYSTEM.exists(documentDirectory.mixedFilePath())) {
                 info("Play audio file: ${documentDirectory.mixedFilePath()}")
-                audioPlayer.play(documentDirectory.mixedFilePath().toString())
+                audioPlayer.play()
             } else {
                 info("Audio file not found: ${documentDirectory.mixedFilePath()}")
             }
@@ -244,9 +244,11 @@ class MeetingLogDialog :
     }
 
     fun setDocument(document: DocumentDirectory) {
-        audioPlayer.pause()
-
         this.documentDirectory = document
+
+        audioPlayer.pause()
+        audioPlayer.load(documentDirectory.mixedFilePath().toString())
+
         reloadImages(document)
 
         notesBodyTextView.string = readSummaryFile(document)

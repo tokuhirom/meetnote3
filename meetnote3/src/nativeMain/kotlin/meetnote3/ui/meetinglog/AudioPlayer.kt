@@ -22,10 +22,13 @@ class AudioPlayer {
     private var player: AVPlayer? = null
     private var timeObserver: Any? = null
 
-    fun play(filePath: String) {
+    fun load(filePath: String) {
         val fileUrl = NSURL.fileURLWithPath(filePath)
         val playerItem = AVPlayerItem.playerItemWithURL(fileUrl)
         player = AVPlayer.playerWithPlayerItem(playerItem)
+    }
+
+    fun play() {
         player?.play()
 
         // 再生時間の更新を開始
