@@ -213,13 +213,13 @@ class MeetingLogDialog :
             action = NSSelectorFromString("onPauseButtonClicked")
         }
 
-        val currentTimeLabel = NSTextField(NSMakeRect(280.0, 10.0, 80.0, 30.0)).apply {
-            stringValue = "00:00"
+        val currentTimeLabel = NSTextField(NSMakeRect(280.0, 10.0, 160.0, 30.0)).apply {
+            stringValue = "00:00 / 00:00"
             setEditable(false)
-            setBezeled(true)
+            setBezeled(false)
             alignment = NSTextAlignmentCenter
         }
-        AudioPlayer.currentTimeLabel = currentTimeLabel
+        audioPlayer.currentTimeLabel = currentTimeLabel
 
         containerView.addSubview(playButton)
         containerView.addSubview(pauseButton)
