@@ -56,7 +56,6 @@ class CaptureMixService {
         val screenAudioRecorder = startScreenAudioRecord(
             screenFileName.toString(),
             contentFilter,
-            enableAudio = true,
             captureConfiguration,
         )
 

@@ -1,8 +1,10 @@
 package meetnote3.recorder
 
 import meetnote3.debug
-import meetnote3.eprintln
-import meetnote3.utils.fileExists
+import meetnote3.info
+import meetnote3.warn
+import okio.FileSystem
+import okio.Path.Companion.toPath
 import platform.AVFAudio.AVEncoderBitRateKey
 import platform.AVFAudio.AVFormatIDKey
 import platform.AVFAudio.AVNumberOfChannelsKey
@@ -23,7 +25,6 @@ import platform.ScreenCaptureKit.SCStreamConfiguration
 import platform.ScreenCaptureKit.SCStreamOutputProtocol
 import platform.ScreenCaptureKit.SCStreamOutputType
 import platform.darwin.NSObject
-import platform.posix.exit
 
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -59,33 +60,26 @@ fun createAudioWriterInput(): AVAssetWriterInput {
 suspend fun startScreenAudioRecord(
     fileName: String,
     contentFilter: SCContentFilter,
-    enableAudio: Boolean,
     scStreamConfiguration: SCStreamConfiguration,
 ): ScreenRecorder {
     val stream = SCStream(contentFilter, scStreamConfiguration, null)
 
     val assetWriter = createAssetWriter(fileName)
 
-    val audioWriterInput = if (enableAudio) {
+    val audioWriterInput = run {
         println("Adding audio input")
         val audioWriterInput = createAudioWriterInput()
         assetWriter.addInput(audioWriterInput)
         audioWriterInput
-    } else {
-        println("Not adding audio input")
-        null
     }
 
     if (!assetWriter.startWriting()) {
-        if (fileExists(fileName)) {
-            eprintln("File already exists: $fileName")
-            exit(1)
+        if (FileSystem.SYSTEM.exists(fileName.toPath())) {
+            error("File already exists: $fileName")
         }
-        eprintln("Failed to start writing: ${assetWriter.error?.localizedDescription}")
-        exit(1)
+        error("Failed to start writing: ${assetWriter.error?.localizedDescription}")
     }
 
-    // CMClock.hostTimeClock.time
     val hostTimeClock = CMClockGetHostTimeClock()
     val now = CMClockGetTime(hostTimeClock)
     assetWriter.startSessionAtSourceTime(now)
@@ -97,18 +91,18 @@ suspend fun startScreenAudioRecord(
             ofType: SCStreamOutputType,
         ) {
             if (!CMSampleBufferIsValid(didOutputSampleBuffer)) {
-                eprintln("Invalid sample buffer")
+                error("Invalid sample buffer")
                 return
             }
 
-            if (audioWriterInput?.readyForMoreMediaData == true) {
+            if (audioWriterInput.readyForMoreMediaData) {
                 if (!audioWriterInput.appendSampleBuffer(didOutputSampleBuffer!!)) {
-                    println("Cannot write audio")
+                    warn("Cannot write audio")
                 } else {
                     debug("Audio written")
                 }
             } else {
-                println("Audio writer input not ready for more media data")
+                info("Audio writer input not ready for more media data")
             }
         }
     }
