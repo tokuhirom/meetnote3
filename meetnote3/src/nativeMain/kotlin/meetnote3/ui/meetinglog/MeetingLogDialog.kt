@@ -221,17 +221,9 @@ class MeetingLogDialog :
         }
         AudioPlayer.currentTimeLabel = currentTimeLabel
 
-        val seekButton = NSButton(NSMakeRect(370.0, 10.0, 80.0, 30.0)).apply {
-            title = "Seek to 10:00"
-            setTarget {
-                audioPlayer.seekToTime(600.0) // 10分 = 600秒
-            }
-        }
-
         containerView.addSubview(playButton)
         containerView.addSubview(pauseButton)
         containerView.addSubview(currentTimeLabel)
-        containerView.addSubview(seekButton)
 
         return containerView
     }
