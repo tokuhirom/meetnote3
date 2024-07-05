@@ -1,8 +1,7 @@
 package meetnote3.ui.meetinglog
 
 import MeetingLogDialog
-import meetnote3.model.DocumentDirectory
-import platform.AppKit.NSImage
+import meetnote3.transcript.LrcLine
 import platform.AppKit.NSTableColumn
 import platform.AppKit.NSTableView
 import platform.AppKit.NSTableViewDataSourceProtocol
@@ -10,30 +9,23 @@ import platform.AppKit.NSTableViewDelegateProtocol
 import platform.AppKit.NSView
 import platform.Foundation.NSMakeRect
 import platform.Foundation.NSNotification
-import platform.Foundation.NSURL
 import platform.darwin.NSObject
 
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
 
-data class FileTableItem(
-    val name: String,
-    val documentDirectory: DocumentDirectory,
-)
-
-class FileTableViewDelegate(
+class LrcTableViewDelegate(
     private val parent: MeetingLogDialog,
 ) : NSObject(),
     NSTableViewDelegateProtocol,
     NSTableViewDataSourceProtocol {
-    private val files = mutableListOf<FileTableItem>()
+    private var lrcItems: List<LrcLine> = listOf()
 
-    fun updateFiles(newFiles: List<FileTableItem>) {
-        files.clear()
-        files.addAll(newFiles)
+    fun updateLrcItems(newItems: List<LrcLine>) {
+        lrcItems = newItems
     }
 
-    override fun numberOfRowsInTableView(tableView: NSTableView): Long = files.size.toLong()
+    override fun numberOfRowsInTableView(tableView: NSTableView): Long = lrcItems.size.toLong()
 
     @OptIn(ExperimentalForeignApi::class)
     override fun tableView(
@@ -41,29 +33,21 @@ class FileTableViewDelegate(
         viewForTableColumn: NSTableColumn?,
         row: Long,
     ): NSView? {
-        val cellView = tableView.makeViewWithIdentifier("FileTableCellView", owner = this) as? FileTableCellView
-            ?: FileTableCellView(
+        val cellView = tableView.makeViewWithIdentifier("LrcTableCellView", owner = this) as? LrcTableCellView
+            ?: LrcTableCellView(
                 frame = NSMakeRect(
                     0.0,
                     0.0,
                     tableView.bounds.useContents { this.size.width },
-                    100.0,
+                    30.0,
                 ),
             ).apply {
-                identifier = "FileTableCellView"
+                identifier = "LrcTableCellView"
             }
 
-        val item = files[row.toInt()]
+        val item = lrcItems[row.toInt()]
 
-        cellView.textField?.stringValue = item.name
-
-        cellView.imageView?.image = item.documentDirectory
-            .listImages()
-            .firstOrNull()
-            ?.let { imagePath ->
-                val url = NSURL.fileURLWithPath(imagePath.toString())
-                NSImage(contentsOfURL = url)
-            }
+        cellView.textField?.stringValue = item.timestamp + " " + item.content
 
         return cellView
     }
@@ -72,13 +56,13 @@ class FileTableViewDelegate(
         val tableView = (notification.`object` as? NSTableView) ?: return
         val selectedRow = tableView.selectedRow
         if (selectedRow != -1L) {
-            val selectedFile = files[selectedRow.toInt()]
-            parent.setDocument(selectedFile.documentDirectory)
+            val selectedFile = lrcItems[selectedRow.toInt()]
+            parent.seek(selectedFile.timestampToSeconds())
         }
     }
 
     override fun tableView(
         tableView: NSTableView,
         heightOfRow: Long,
-    ): Double = 50.0
+    ): Double = 20.0
 }

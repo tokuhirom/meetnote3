@@ -1,8 +1,14 @@
-package meetnote3.ui.meetinglog
-
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
 import meetnote3.model.DocumentStatus
+import meetnote3.transcript.LrcLine
+import meetnote3.transcript.parseLrcContent
+import meetnote3.ui.meetinglog.AudioPlayer
+import meetnote3.ui.meetinglog.FileTableItem
+import meetnote3.ui.meetinglog.FileTableViewDelegate
+import meetnote3.ui.meetinglog.ImageTableItem
+import meetnote3.ui.meetinglog.ImageTableViewDelegate
+import meetnote3.ui.meetinglog.LrcTableViewDelegate
 import okio.FileSystem
 import okio.IOException
 import platform.AppKit.NSBackingStoreBuffered
@@ -20,42 +26,29 @@ import platform.AppKit.NSWindowStyleMaskClosable
 import platform.AppKit.NSWindowStyleMaskMiniaturizable
 import platform.AppKit.NSWindowStyleMaskResizable
 import platform.AppKit.NSWindowStyleMaskTitled
-import platform.AppKit.translatesAutoresizingMaskIntoConstraints
-import platform.Foundation.NSData
 import platform.Foundation.NSMakeRect
 import platform.Foundation.NSNotification
 import platform.Foundation.NSSelectorFromString
 import platform.Foundation.NSTimer
-import platform.Foundation.create
 import platform.darwin.NSObject
 
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCAction
-import kotlinx.cinterop.addressOf
-import kotlinx.cinterop.usePinned
-
-@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-fun ByteArray.toNSData(): NSData =
-    this.usePinned { pinned ->
-        NSData.create(
-            bytes = pinned.addressOf(0),
-            length = this.size.toULong(),
-        )
-    }
 
 class MeetingLogDialog :
     NSObject(),
     NSWindowDelegateProtocol {
     private var window: NSWindow? = null
     private lateinit var notesBodyTextView: NSTextView
-    private lateinit var lrcBodyTextView: NSTextView
+    private lateinit var lrcTableView: NSTableView
     private lateinit var imageTableView: NSTableView
     private lateinit var documentDirectory: DocumentDirectory
     private val audioPlayer = AudioPlayer()
     private var reloadTimer: NSTimer? = null
     private var fileTableView: NSTableView? = null
     private val fileTableViewDelegate = FileTableViewDelegate(this)
+    private val lrcTableViewDelegate = LrcTableViewDelegate(this)
     private val imageTableViewDelegate = ImageTableViewDelegate()
 
     private val instanceHolder = mutableListOf<NSWindow>()
@@ -67,7 +60,7 @@ class MeetingLogDialog :
             info("Start player...")
             if (FileSystem.SYSTEM.exists(documentDirectory.mixedFilePath())) {
                 info("Play audio file: ${documentDirectory.mixedFilePath()}")
-                audioPlayer.play(documentDirectory.mixedFilePath().toString())
+                audioPlayer.play()
             } else {
                 info("Audio file not found: ${documentDirectory.mixedFilePath()}")
             }
@@ -102,7 +95,7 @@ class MeetingLogDialog :
         window.title = "Meeting Notes Viewer"
         window.delegate = this
 
-        val contentView = window.contentView
+        val contentView = window.contentView!!
 
         fileTableView = NSTableView().apply {
             val column = NSTableColumn("Files").apply {
@@ -111,23 +104,42 @@ class MeetingLogDialog :
                 setHeaderView(null)
             }
             addTableColumn(column)
-            setDelegate(fileTableViewDelegate)
-            setDataSource(fileTableViewDelegate)
+            delegate = fileTableViewDelegate
+            dataSource = fileTableViewDelegate
         }
 
-        val scrollView = NSScrollView().apply {
+        val fileScrollView = NSScrollView().apply {
             documentView = fileTableView
             setFrame(NSMakeRect(10.0, 10.0, 300.0, 660.0))
             hasVerticalScroller = true
         }
 
-        contentView?.addSubview(scrollView)
+        contentView.addSubview(fileScrollView)
 
         notesBodyTextView = NSTextView(NSMakeRect(320.0, 10.0, 630.0, 320.0)).apply {
             setEditable(false)
         }
-        lrcBodyTextView = NSTextView(NSMakeRect(320.0, 340.0, 630.0, 320.0)).apply {
-            setEditable(false)
+        val notesScrollView = NSScrollView().apply {
+            documentView = notesBodyTextView
+            setFrame(NSMakeRect(320.0, 10.0, 630.0, 320.0))
+            hasVerticalScroller = true
+        }
+
+        // LRC テーブルビュー
+        lrcTableView = NSTableView().apply {
+            val column = NSTableColumn("LRC Content").apply {
+                width = 630.0
+                setEditable(false)
+                setHeaderView(null)
+            }
+            addTableColumn(column)
+            delegate = lrcTableViewDelegate
+            dataSource = lrcTableViewDelegate
+        }
+        val lrcScrollView = NSScrollView().apply {
+            documentView = lrcTableView
+            setFrame(NSMakeRect(320.0, 340.0, 630.0, 320.0))
+            hasVerticalScroller = true
         }
 
         imageTableView = NSTableView().apply {
@@ -137,8 +149,8 @@ class MeetingLogDialog :
                 setHeaderView(null)
             }
             addTableColumn(column)
-            setDelegate(imageTableViewDelegate)
-            setDataSource(imageTableViewDelegate)
+            delegate = imageTableViewDelegate
+            dataSource = imageTableViewDelegate
         }
         val imageScrollView = NSScrollView().apply {
             documentView = imageTableView
@@ -146,22 +158,10 @@ class MeetingLogDialog :
             hasVerticalScroller = true
         }
 
-        contentView?.addSubview(
-            NSScrollView().apply {
-                translatesAutoresizingMaskIntoConstraints = false
-                documentView = notesBodyTextView
-                setFrame(NSMakeRect(320.0, 340.0, 630.0, 320.0))
-            },
-        )
-        contentView?.addSubview(
-            NSScrollView().apply {
-                translatesAutoresizingMaskIntoConstraints = false
-                documentView = lrcBodyTextView
-                setFrame(NSMakeRect(320.0, 10.0, 630.0, 320.0))
-            },
-        )
-        contentView?.addSubview(imageScrollView)
-        contentView?.addSubview(buildAudioPlayer())
+        contentView.addSubview(notesScrollView)
+        contentView.addSubview(lrcScrollView)
+        contentView.addSubview(imageScrollView)
+        contentView.addSubview(buildAudioPlayer())
 
         reloadTimer = NSTimer.scheduledTimerWithTimeInterval(
             interval = 10.0,
@@ -192,7 +192,6 @@ class MeetingLogDialog :
     }
 
     private fun reloadNotesItems() {
-        // TODO: use inotify to detect file change.
         val newItems = loadNotesItems()
         fileTableViewDelegate.updateFiles(newItems)
         fileTableView?.reloadData()
@@ -202,33 +201,29 @@ class MeetingLogDialog :
     private fun buildAudioPlayer(): NSView {
         val containerView = NSView(NSMakeRect(320.0, 680.0, 630.0, 40.0))
 
-        val playButton = NSButton(NSMakeRect(10.0, 10.0, 80.0, 30.0))
-        playButton.title = "Play"
-        playButton.target = audioPlayerController
-        playButton.action = NSSelectorFromString("onPlayButtonClicked")
-
-        val pauseButton = NSButton(NSMakeRect(100.0, 10.0, 80.0, 30.0))
-        pauseButton.title = "Pause"
-        pauseButton.target = audioPlayerController
-        pauseButton.action = NSSelectorFromString("onPauseButtonClicked")
-
-        val currentTimeLabel = NSTextField(NSMakeRect(280.0, 10.0, 80.0, 30.0))
-        currentTimeLabel.stringValue = "00:00"
-        currentTimeLabel.setEditable(false)
-        currentTimeLabel.setBezeled(true)
-        currentTimeLabel.alignment = NSTextAlignmentCenter
-        AudioPlayer.currentTimeLabel = currentTimeLabel
-
-        val seekButton = NSButton(NSMakeRect(370.0, 10.0, 80.0, 30.0))
-        seekButton.title = "Seek to 10:00"
-        seekButton.setTarget {
-            audioPlayer.seekToTime(600.0) // 10分 = 600秒
+        val playButton = NSButton(NSMakeRect(10.0, 10.0, 80.0, 30.0)).apply {
+            title = "Play"
+            target = audioPlayerController
+            action = NSSelectorFromString("onPlayButtonClicked")
         }
+
+        val pauseButton = NSButton(NSMakeRect(100.0, 10.0, 80.0, 30.0)).apply {
+            title = "Pause"
+            target = audioPlayerController
+            action = NSSelectorFromString("onPauseButtonClicked")
+        }
+
+        val currentTimeLabel = NSTextField(NSMakeRect(280.0, 10.0, 160.0, 30.0)).apply {
+            stringValue = "00:00 / 00:00"
+            setEditable(false)
+            setBezeled(false)
+            alignment = NSTextAlignmentCenter
+        }
+        audioPlayer.currentTimeLabel = currentTimeLabel
 
         containerView.addSubview(playButton)
         containerView.addSubview(pauseButton)
         containerView.addSubview(currentTimeLabel)
-        containerView.addSubview(seekButton)
 
         return containerView
     }
@@ -241,19 +236,27 @@ class MeetingLogDialog :
     }
 
     fun setDocument(document: DocumentDirectory) {
-        audioPlayer.pause()
-
         this.documentDirectory = document
+
+        audioPlayer.pause()
+        audioPlayer.load(documentDirectory.mixedFilePath().toString())
+
         reloadImages(document)
 
         notesBodyTextView.string = readSummaryFile(document)
-        lrcBodyTextView.string = readLrcFile(document)
+        reloadLrcTable(document)
     }
 
     private fun reloadImages(document: DocumentDirectory) {
         val imageItems = document.listImages().map { ImageTableItem(it) }
         imageTableViewDelegate.updateImages(imageItems)
         imageTableView.reloadData()
+    }
+
+    private fun reloadLrcTable(document: DocumentDirectory) {
+        val lrcItems = readLrcFile(document)
+        lrcTableViewDelegate.updateLrcItems(lrcItems)
+        lrcTableView.reloadData()
     }
 
     private fun readSummaryFile(document: DocumentDirectory): String {
@@ -268,15 +271,21 @@ class MeetingLogDialog :
         }
     }
 
-    private fun readLrcFile(document: DocumentDirectory): String {
+    private fun readLrcFile(document: DocumentDirectory): List<LrcLine> {
         info("Load notes file: $document")
 
         return try {
             FileSystem.SYSTEM.read(document.lrcFilePath()) {
-                readUtf8()
+                parseLrcContent(readUtf8())
             }
         } catch (e: IOException) {
-            "Cannot read lrc file(${e.message}): ${document.lrcFilePath()}"
+            listOf(
+                LrcLine("00:00.00", "Cannot read lrc file(${e.message}): ${document.lrcFilePath()}"),
+            )
         }
+    }
+
+    fun seek(seconds: Double) {
+        audioPlayer.seekToTime(seconds)
     }
 }
