@@ -22,28 +22,15 @@ import platform.AppKit.NSWindowStyleMaskMiniaturizable
 import platform.AppKit.NSWindowStyleMaskResizable
 import platform.AppKit.NSWindowStyleMaskTitled
 import platform.AppKit.translatesAutoresizingMaskIntoConstraints
-import platform.Foundation.NSData
 import platform.Foundation.NSMakeRect
 import platform.Foundation.NSNotification
 import platform.Foundation.NSSelectorFromString
 import platform.Foundation.NSTimer
-import platform.Foundation.create
 import platform.darwin.NSObject
 
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCAction
-import kotlinx.cinterop.addressOf
-import kotlinx.cinterop.usePinned
-
-@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-fun ByteArray.toNSData(): NSData =
-    this.usePinned { pinned ->
-        NSData.create(
-            bytes = pinned.addressOf(0),
-            length = this.size.toULong(),
-        )
-    }
 
 class MeetingLogDialog :
     NSObject(),
