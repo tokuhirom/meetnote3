@@ -1,10 +1,14 @@
-package meetnote3.ui.meetinglog
-
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
 import meetnote3.model.DocumentStatus
 import meetnote3.transcript.LrcLine
 import meetnote3.transcript.parseLrcContent
+import meetnote3.ui.meetinglog.AudioPlayer
+import meetnote3.ui.meetinglog.FileTableItem
+import meetnote3.ui.meetinglog.FileTableViewDelegate
+import meetnote3.ui.meetinglog.ImageTableItem
+import meetnote3.ui.meetinglog.ImageTableViewDelegate
+import meetnote3.ui.meetinglog.LrcTableViewDelegate
 import okio.FileSystem
 import okio.IOException
 import platform.AppKit.NSBackingStoreBuffered
@@ -22,7 +26,6 @@ import platform.AppKit.NSWindowStyleMaskClosable
 import platform.AppKit.NSWindowStyleMaskMiniaturizable
 import platform.AppKit.NSWindowStyleMaskResizable
 import platform.AppKit.NSWindowStyleMaskTitled
-import platform.AppKit.translatesAutoresizingMaskIntoConstraints
 import platform.Foundation.NSMakeRect
 import platform.Foundation.NSNotification
 import platform.Foundation.NSSelectorFromString
@@ -92,7 +95,7 @@ class MeetingLogDialog :
         window.title = "Meeting Notes Viewer"
         window.delegate = this
 
-        val contentView = window.contentView
+        val contentView = window.contentView!!
 
         fileTableView = NSTableView().apply {
             val column = NSTableColumn("Files").apply {
@@ -101,21 +104,28 @@ class MeetingLogDialog :
                 setHeaderView(null)
             }
             addTableColumn(column)
-            setDelegate(fileTableViewDelegate)
-            setDataSource(fileTableViewDelegate)
+            delegate = fileTableViewDelegate
+            dataSource = fileTableViewDelegate
         }
 
-        val scrollView = NSScrollView().apply {
+        val fileScrollView = NSScrollView().apply {
             documentView = fileTableView
             setFrame(NSMakeRect(10.0, 10.0, 300.0, 660.0))
             hasVerticalScroller = true
         }
 
-        contentView?.addSubview(scrollView)
+        contentView.addSubview(fileScrollView)
 
         notesBodyTextView = NSTextView(NSMakeRect(320.0, 10.0, 630.0, 320.0)).apply {
             setEditable(false)
         }
+        val notesScrollView = NSScrollView().apply {
+            documentView = notesBodyTextView
+            setFrame(NSMakeRect(320.0, 10.0, 630.0, 320.0))
+            hasVerticalScroller = true
+        }
+
+        // LRC テーブルビュー
         lrcTableView = NSTableView().apply {
             val column = NSTableColumn("LRC Content").apply {
                 width = 630.0
@@ -123,8 +133,8 @@ class MeetingLogDialog :
                 setHeaderView(null)
             }
             addTableColumn(column)
-            setDelegate(lrcTableViewDelegate)
-            setDataSource(lrcTableViewDelegate)
+            delegate = lrcTableViewDelegate
+            dataSource = lrcTableViewDelegate
         }
         val lrcScrollView = NSScrollView().apply {
             documentView = lrcTableView
@@ -139,8 +149,8 @@ class MeetingLogDialog :
                 setHeaderView(null)
             }
             addTableColumn(column)
-            setDelegate(imageTableViewDelegate)
-            setDataSource(imageTableViewDelegate)
+            delegate = imageTableViewDelegate
+            dataSource = imageTableViewDelegate
         }
         val imageScrollView = NSScrollView().apply {
             documentView = imageTableView
@@ -148,16 +158,10 @@ class MeetingLogDialog :
             hasVerticalScroller = true
         }
 
-        contentView?.addSubview(
-            NSScrollView().apply {
-                translatesAutoresizingMaskIntoConstraints = false
-                documentView = notesBodyTextView
-                setFrame(NSMakeRect(320.0, 340.0, 630.0, 320.0))
-            },
-        )
-        contentView?.addSubview(lrcScrollView)
-        contentView?.addSubview(imageScrollView)
-        contentView?.addSubview(buildAudioPlayer())
+        contentView.addSubview(notesScrollView)
+        contentView.addSubview(lrcScrollView)
+        contentView.addSubview(imageScrollView)
+        contentView.addSubview(buildAudioPlayer())
 
         reloadTimer = NSTimer.scheduledTimerWithTimeInterval(
             interval = 10.0,
@@ -188,7 +192,6 @@ class MeetingLogDialog :
     }
 
     private fun reloadNotesItems() {
-        // TODO: use inotify to detect file change.
         val newItems = loadNotesItems()
         fileTableViewDelegate.updateFiles(newItems)
         fileTableView?.reloadData()
@@ -198,27 +201,31 @@ class MeetingLogDialog :
     private fun buildAudioPlayer(): NSView {
         val containerView = NSView(NSMakeRect(320.0, 680.0, 630.0, 40.0))
 
-        val playButton = NSButton(NSMakeRect(10.0, 10.0, 80.0, 30.0))
-        playButton.title = "Play"
-        playButton.target = audioPlayerController
-        playButton.action = NSSelectorFromString("onPlayButtonClicked")
+        val playButton = NSButton(NSMakeRect(10.0, 10.0, 80.0, 30.0)).apply {
+            title = "Play"
+            target = audioPlayerController
+            action = NSSelectorFromString("onPlayButtonClicked")
+        }
 
-        val pauseButton = NSButton(NSMakeRect(100.0, 10.0, 80.0, 30.0))
-        pauseButton.title = "Pause"
-        pauseButton.target = audioPlayerController
-        pauseButton.action = NSSelectorFromString("onPauseButtonClicked")
+        val pauseButton = NSButton(NSMakeRect(100.0, 10.0, 80.0, 30.0)).apply {
+            title = "Pause"
+            target = audioPlayerController
+            action = NSSelectorFromString("onPauseButtonClicked")
+        }
 
-        val currentTimeLabel = NSTextField(NSMakeRect(280.0, 10.0, 80.0, 30.0))
-        currentTimeLabel.stringValue = "00:00"
-        currentTimeLabel.setEditable(false)
-        currentTimeLabel.setBezeled(true)
-        currentTimeLabel.alignment = NSTextAlignmentCenter
+        val currentTimeLabel = NSTextField(NSMakeRect(280.0, 10.0, 80.0, 30.0)).apply {
+            stringValue = "00:00"
+            setEditable(false)
+            setBezeled(true)
+            alignment = NSTextAlignmentCenter
+        }
         AudioPlayer.currentTimeLabel = currentTimeLabel
 
-        val seekButton = NSButton(NSMakeRect(370.0, 10.0, 80.0, 30.0))
-        seekButton.title = "Seek to 10:00"
-        seekButton.setTarget {
-            audioPlayer.seekToTime(600.0) // 10分 = 600秒
+        val seekButton = NSButton(NSMakeRect(370.0, 10.0, 80.0, 30.0)).apply {
+            title = "Seek to 10:00"
+            setTarget {
+                audioPlayer.seekToTime(600.0) // 10分 = 600秒
+            }
         }
 
         containerView.addSubview(playButton)
