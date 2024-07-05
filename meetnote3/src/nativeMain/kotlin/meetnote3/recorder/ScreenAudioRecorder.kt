@@ -36,9 +36,7 @@ fun createAssetWriter(fileName: String): AVAssetWriter {
     val outputFileURL = NSURL.fileURLWithPath(fileName)
     println("Output file: ${outputFileURL.path}")
 
-    val assetWriter = AVAssetWriter(outputFileURL, fileType = AVFileTypeAppleM4A, error = null)
-
-    return assetWriter
+    return AVAssetWriter(outputFileURL, fileType = AVFileTypeAppleM4A, error = null)
 }
 
 @OptIn(ExperimentalForeignApi::class)
