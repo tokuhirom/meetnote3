@@ -110,7 +110,7 @@ class MeetingLogDialog :
 
         val fileScrollView = NSScrollView().apply {
             documentView = fileTableView
-            setFrame(NSMakeRect(10.0, 10.0, 300.0, 660.0))
+            setFrame(NSMakeRect(10.0, 0.0, 300.0, 720.0))
             hasVerticalScroller = true
         }
 
@@ -154,7 +154,7 @@ class MeetingLogDialog :
         }
         val imageScrollView = NSScrollView().apply {
             documentView = imageTableView
-            setFrame(NSMakeRect(960.0, 10.0, 300.0, 660.0)) // Positioned to the right
+            setFrame(NSMakeRect(960.0, 0.0, 300.0, 720.0)) // Positioned to the right
             hasVerticalScroller = true
         }
 
