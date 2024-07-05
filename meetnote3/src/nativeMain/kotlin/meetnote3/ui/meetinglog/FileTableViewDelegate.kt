@@ -59,8 +59,9 @@ class FileTableViewDelegate(
 
         cellView.imageView?.image = item.documentDirectory
             .listImages()
-            .firstOrNull()
-            ?.let { imagePath ->
+            .let { images ->
+                images.getOrNull(images.size / 2) // リストの真ん中の要素を取得
+            }?.let { imagePath ->
                 val url = NSURL.fileURLWithPath(imagePath.toString())
                 NSImage(contentsOfURL = url)
             }
