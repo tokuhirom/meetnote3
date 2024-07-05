@@ -34,11 +34,6 @@ whisper.cpp は、音声ファイルを入力とし、音声ファイルの内�
 Mac の API でもこの処理は可能そうだが、やり方がわからないため、ffmpeg を用いて、音声を変換しています。
 
 TODO:
-SFSpeechAudioBufferRecognitionRequest を用いて、Mac の API で変換する方法もあるかもしれません。
-SFSpeechAudioBufferRecognitionRequest は通常ではリモートでの処理になりますが、MacOS Catalina 以後では、
-requiresOnDeviceRecognition オプションを有効にすることでローカルでの音声文字起こしも可能になっているようです。
-
-TODO:
 
 whisper.cpp は lrc, vtt, srt の形式で出力することができる。Meetnote3 では lrc を採用している。
 
@@ -115,25 +110,34 @@ Thank you for watching.
 ```
 
 lrc だと、一行の情報量が多いため、Meetnote3 では lrc を採用している。
+パースも一行単位で行えば良いため、ハンドリングしやすいというメリットもあります。
+
+### SFSpeechAudioBufferRecognitionRequest
+
+Mac の Native API である SFSpeechAudioBufferRecognitionRequest を用いて文字起こしすることも可能です。
+SFSpeechAudioBufferRecognitionRequest は通常ではリモートでの処理になりますが、MacOS Catalina 以後では、
+requiresOnDeviceRecognition オプションを有効にすることでローカルでの音声文字起こしも可能になっているようです。
+
+しかしながら、私のマシンでは動作しなかったため、採用を見送って、whisper.cpp を採用しています。
 
 ## 要約処理の詳細
 
 whisper.cpp の出力結果は、lrc である。
 要約処理の前段として、重複行の除外を行う。
 
+重複業の除外を行った後、gpt2 を用いて要約処理を行う。
+gpt2 以外にも様々な方法を試したが、gpt2 がローカルで動かせる中ではわりと精度たかくそれっぽい要約ができるため、一旦コレを採用している。
+
+TODO: 将来的には pure kotlin で形態素解析器を作成し、それっぽい要約を行うことも検討している。
+
 ## UI の詳細
 
 録音の開始や終了はすべて自動で行われるため、UI 上では操作は行われない。
 UI は単なるビューワーである。
 
-UI は HTML で実装され、web browser で表示される。
-ktor でサーバーは実装されており、UI は Kotlin/JS で実装されている。
+UI は kotlin native で Mac のネイティブコンポーネントを利用して実装されている。
 
-## UI の今後の展開
-
-今後、kotlin native で Mac のネイティブコンポーネントを利用して再実装する予定となっている。
-
-この UI では、3種類の情報が表示可能となる。
+この UI では、3種類の情報が表示可能となっている。
 
 ### Meeting Logs Window
 
@@ -144,6 +148,7 @@ System Tray Icon にメニューが追加されており、"Open Meeting Logs" �
 Meeting Logs Window は、ログの内容を表示するためのウィンドウである。
 過去のログがウィンドウの左側1/3 ぐらいの領域に一覧で表示される。ファイルの格納されているディレクトリ名をパースして、
 録音した日時が表示されている。この領域をタップ/クリックすると右側2/3の領域にログの詳細情報が表示される。
+この領域には、ミーティングの所要時間も表示されている。この時間は、LRC の最後の行のタイムスタンプから得られている。
 
 ログの詳細情報表示領域には、音声ファイルの再生ボタン、要約結果、文字起こし結果が表示される。
 
@@ -159,3 +164,8 @@ Window は Tray Icon にメニューが追加されており、"Open System Logs
 
 Dropdown menu の下には text を表示する枠があり、そこにログの内容が表示される。
 
+### Stats Window
+
+アプリケーションの統計情報を表示することが可能となる。
+
+具体的には、現在の子プロセスの一覧、現在の whisper-cpp の稼働状況、サマライザの稼働状況、リカバリプロセスの稼働状況などがある。
