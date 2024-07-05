@@ -1,14 +1,17 @@
 package meetnote3.ui.meetinglog
 
 import meetnote3.transcript.LrcLine
-import platform.AppKit.NSTableCellView
 import platform.AppKit.NSTableColumn
 import platform.AppKit.NSTableView
 import platform.AppKit.NSTableViewDataSourceProtocol
 import platform.AppKit.NSTableViewDelegateProtocol
-import platform.AppKit.NSTextField
 import platform.AppKit.NSView
+import platform.Foundation.NSMakeRect
+import platform.Foundation.NSNotification
 import platform.darwin.NSObject
+
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.useContents
 
 class LrcTableViewDelegate :
     NSObject(),
@@ -22,36 +25,42 @@ class LrcTableViewDelegate :
 
     override fun numberOfRowsInTableView(tableView: NSTableView): Long = lrcItems.size.toLong()
 
+    @OptIn(ExperimentalForeignApi::class)
     override fun tableView(
         tableView: NSTableView,
-        viewFor: NSTableColumn?,
+        viewForTableColumn: NSTableColumn?,
         row: Long,
     ): NSView? {
-        val item = lrcItems[row.toInt()]
-        val identifier = viewFor?.identifier?.toString()
-
-        val cell = tableView.makeViewWithIdentifier(identifier ?: "", owner = this) as? NSTableCellView
-            ?: NSTableCellView().apply {
-                setIdentifier(identifier)
-                textField = NSTextField().apply {
-                    setEditable(false)
-                    drawsBackground = false
-                    setBordered(false)
-                }
-                addSubview(textField!!)
+        val cellView = tableView.makeViewWithIdentifier("LrcTableCellView", owner = this) as? LrcTableCellView
+            ?: LrcTableCellView(
+                frame = NSMakeRect(
+                    0.0,
+                    0.0,
+                    tableView.bounds.useContents { this.size.width },
+                    100.0,
+                ),
+            ).apply {
+                identifier = "LrcTableCellView"
             }
 
-        when (identifier) {
-            "Timestamp" -> cell.textField?.stringValue = item.timestamp
-            "Content" -> cell.textField?.stringValue = item.content
-        }
+        val item = lrcItems[row.toInt()]
 
-        return cell
+        cellView.textField?.stringValue = item.timestamp + " " + item.content
+
+        return cellView
+    }
+
+    override fun tableViewSelectionDidChange(notification: NSNotification) {
+        val tableView = (notification.`object` as? NSTableView) ?: return
+        val selectedRow = tableView.selectedRow
+        if (selectedRow != -1L) {
+//            val selectedFile = lrcItems[selectedRow.toInt()]
+//            parent.setDocument(selectedFile.documentDirectory)
+        }
     }
 
     override fun tableView(
         tableView: NSTableView,
-        shouldEditTableColumn: NSTableColumn?,
-        row: Long,
-    ): Boolean = false
+        heightOfRow: Long,
+    ): Double = 50.0
 }

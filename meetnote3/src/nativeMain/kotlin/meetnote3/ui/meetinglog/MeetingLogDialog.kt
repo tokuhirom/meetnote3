@@ -3,6 +3,7 @@ package meetnote3.ui.meetinglog
 import meetnote3.info
 import meetnote3.model.DocumentDirectory
 import meetnote3.model.DocumentStatus
+import meetnote3.transcript.LrcLine
 import meetnote3.transcript.parseLrcContent
 import okio.FileSystem
 import okio.IOException
@@ -269,17 +270,17 @@ class MeetingLogDialog :
         }
     }
 
-    private fun readLrcFile(document: DocumentDirectory): List<String> {
+    private fun readLrcFile(document: DocumentDirectory): List<LrcLine> {
         info("Load notes file: $document")
 
         return try {
             FileSystem.SYSTEM.read(document.lrcFilePath()) {
-                parseLrcContent(readUtf8()).map {
-                    it.timestamp + " " + it.content
-                }
+                parseLrcContent(readUtf8())
             }
         } catch (e: IOException) {
-            listOf("Cannot read lrc file(${e.message}): ${document.lrcFilePath()}")
+            listOf(
+                LrcLine("00:00.00", "Cannot read lrc file(${e.message}): ${document.lrcFilePath()}"),
+            )
         }
     }
 }
